@@ -1,0 +1,3781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VolcBox Next</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    /* =====================================================================
+       VOLCBOX NEXT - PIXEL-PERFECT DESIGN SYSTEM (4pt Grid)
+       ===================================================================== */
+    :root {
+      --bg-chassis: #F4F1EB;
+      --bg-deck: #FAF8F4;
+      --bg-surface: #FFFFFF;
+      --bg-hover: #F0ECE4;
+      --bg-active: #E8E2D6;
+      --bg-muted: #EDE8DE;
+      
+      --border-chassis: #DDD6C9;
+      --border-deck: #E5DFD4;
+      --border-subtle: #ECE6DC;
+      --border-focus: #FF453A;
+      
+      --text-main: #1D1A16;
+      --text-sub: #6E675C;
+      --text-muted: #9E9689;
+      --text-inverse: #FFFFFF;
+      
+      --accent-red: #FF453A;
+      --accent-red-hover: #E83B30;
+      --accent-green: #30D158;
+      --accent-blue: #0066CC;
+      --accent-amber: #F59E0B;
+      
+      --shadow-key: 0 2px 0 #CCC4B4, 0 3px 5px rgba(0, 0, 0, 0.05);
+      --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+      --shadow-deck: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      
+      --font-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "SF Mono", Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-base);
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--text-main);
+      background-color: var(--bg-chassis);
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* --- TOP MODE KEYPAD (6 KEYS) --- */
+    .keypad-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 10px 10px 8px 10px;
+      flex-shrink: 0;
+    }
+
+    .tactile-key {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 28px;
+      background-color: #FCFAF6;
+      border: 1px solid var(--border-chassis);
+      border-radius: 6px;
+      cursor: pointer;
+      outline: none;
+      box-shadow: var(--shadow-key);
+      transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-sub);
+    }
+    .tactile-key:hover:not(.active) {
+      background-color: #FFFFFF;
+      border-color: #C8C0B2;
+      color: var(--text-main);
+    }
+    .tactile-key:active {
+      transform: translateY(1px);
+    }
+    .tactile-key.active {
+      background-color: #FFFFFF !important;
+      border-color: #D8D0C2 !important;
+      color: var(--text-main) !important;
+      font-weight: 600;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px #D8D0C2 !important;
+      transform: translateY(1px);
+    }
+
+    .led-dot {
+      position: absolute;
+      top: 4px;
+      right: 5px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: #C8C2B5;
+      transition: all 0.15s ease;
+    }
+    .tactile-key.active .led-dot {
+      background-color: var(--accent-red) !important;
+      box-shadow: 0 0 5px rgba(255, 69, 58, 0.9);
+    }
+
+    /* --- MAIN DECK & SCROLL AREA --- */
+    .deck-container {
+      flex: 1;
+      margin: 0 10px 8px 10px;
+      background-color: var(--bg-deck);
+      border: 1px solid var(--border-deck);
+      border-radius: 10px;
+      box-shadow: var(--shadow-deck);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .deck-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 10px 0 14px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* --- UNIFIED SECTION HEADERS --- */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 12px 6px 12px;
+    }
+    .deck-scroll-area > *:first-child {
+      margin-top: 0 !important;
+    }
+    .deck-scroll-area > .section-header:first-child {
+      padding-top: 0 !important;
+    }
+    .deck-scroll-area > .preset-bar:first-child {
+      padding-top: 0 !important;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-sub);
+      letter-spacing: 0.02em;
+    }
+    .section-hint {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* --- UNIFIED CARDS & CONTAINERS --- */
+    .card-deck {
+      margin: 0 12px 6px 12px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-deck);
+      border-radius: 7px;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    /* --- UNIFIED SEGMENTED CONTROL (TABS) --- */
+    .segmented-control {
+      display: flex;
+      background-color: var(--bg-muted);
+      border: 1px solid var(--border-chassis);
+      border-radius: 7px;
+      padding: 2.5px;
+      gap: 3px;
+      margin: 0 12px 6px 12px;
+    }
+    .segment-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 25px;
+      background: transparent;
+      border: none;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .segment-btn:hover:not(.active) {
+      color: var(--text-main);
+    }
+    .segment-btn.active {
+      background-color: #FFFFFF !important;
+      color: var(--text-main) !important;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    /* --- UNIFIED SETTING ROWS (LIST) --- */
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      background-color: #FAF8F4;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 6px;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 12px;
+      min-height: 36px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+    .setting-label-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .setting-label {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    .setting-sublabel {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    /* --- TACTILE SWITCH --- */
+    .tactile-switch {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      border-radius: 11px;
+      background-color: #D9D2C4;
+      border: 1px solid #CCC5B6;
+      cursor: pointer;
+      outline: none;
+      display: inline-flex;
+      align-items: center;
+      transition: background-color 0.18s ease;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+    .tactile-switch.checked {
+      background-color: var(--accent-red);
+      border-color: #D9362C;
+    }
+    .switch-knob {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .tactile-switch.checked .switch-knob {
+      transform: translateX(18px);
+    }
+
+    /* --- INPUTS & TEXTAREA --- */
+    .input-box {
+      width: 100%;
+      height: 28px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-deck);
+      border-radius: 6px;
+      padding: 0 8px;
+      font-size: 11.5px;
+      color: var(--text-main);
+      outline: none;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .input-box:focus {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 0 1px var(--accent-red);
+    }
+
+    .select-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: 100%;
+    }
+    .select-custom {
+      width: 100%;
+      height: 28px;
+      padding: 0 24px 0 8px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-deck);
+      border-radius: 6px;
+      font-size: 11.5px;
+      color: var(--text-main);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+    .select-custom:focus {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 0 1px var(--accent-red);
+    }
+    .select-arrow {
+      position: absolute;
+      right: 8px;
+      pointer-events: none;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+    }
+
+    .input-with-action {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    .input-with-action input {
+      padding-right: 28px;
+    }
+    .input-action-btn {
+      position: absolute;
+      right: 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      border-radius: 3px;
+    }
+    .input-action-btn:hover {
+      color: var(--text-main);
+    }
+
+    .status-indicator-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+      box-shadow: 0 0 6px rgba(48, 209, 88, 0.6);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    /* --- UNIFIED BUTTONS --- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      border: 1px solid transparent;
+      transition: all 0.12s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background-color: var(--accent-red);
+      color: #FFFFFF;
+      border-color: #D9362C;
+      box-shadow: 0 2px #C4271D, 0 3px 6px rgba(255, 69, 58, 0.25);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--accent-red-hover);
+    }
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+    .btn-secondary {
+      background-color: #FCFAF6;
+      color: var(--text-main);
+      border-color: var(--border-chassis);
+      box-shadow: var(--shadow-key);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #FFFFFF;
+      border-color: #C8C0B2;
+    }
+    .btn-secondary:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none !important;
+    }
+
+    /* --- ACTION BARS --- */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px 2px 12px;
+      margin-top: 4px;
+    }
+    .action-bar > .btn:first-child {
+      flex: 1;
+    }
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1.1fr;
+      gap: 6px;
+      padding: 4px 12px 2px 12px;
+      margin-top: 4px;
+    }
+
+    /* --- LANG & PRESET GRIDS --- */
+    .lang-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      row-gap: 6px;
+      column-gap: 5px;
+      padding: 6px 12px 6px 12px;
+    }
+    .lang-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 4px 6px;
+      background-color: #FCFAF6;
+      border: 1px solid var(--border-chassis);
+      border-radius: 6px;
+      cursor: pointer;
+      outline: none;
+      box-shadow: var(--shadow-key);
+      transition: all 0.12s ease;
+      min-height: 38px;
+    }
+    .lang-chip:hover:not(.active) {
+      background-color: #FFFFFF;
+      border-color: #C8C0B2;
+    }
+    .lang-chip.active {
+      background-color: #FFFFFF !important;
+      border-color: var(--accent-red) !important;
+      box-shadow: 0 0 0 1px var(--accent-red), 0 2px 4px rgba(255, 69, 58, 0.2) !important;
+      transform: translateY(1px);
+    }
+    .lang-chip-top {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      width: 100%;
+    }
+    .lang-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lang-en {
+      font-size: 8.5px;
+      color: var(--text-muted);
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* --- PRESET GRID & MASTER-DETAIL --- */
+    .fill-layout {
+      display: flex;
+      flex: 1;
+      padding: 0 12px;
+      gap: 12px;
+      height: 100%;
+      overflow: hidden;
+    }
+    .fill-sidebar {
+      width: 64px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      padding-bottom: 4px;
+    }
+    .fill-sidebar::-webkit-scrollbar { display: none; }
+    
+    .fill-main {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 4px;
+    }
+    .fill-main::-webkit-scrollbar { display: none; }
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .preset-square {
+      aspect-ratio: 1 / 1;
+      background: #FFFFFF;
+      border: 1px solid var(--border-deck);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      position: relative;
+    }
+    .preset-square:hover {
+      border-color: #C8C0B2;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .preset-square.active {
+      border-color: var(--accent-red);
+      background: #FFF9F9;
+      box-shadow: 0 0 0 1px var(--accent-red);
+    }
+    .preset-name {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--text-main);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-all;
+      line-height: 1.3;
+      margin-top: 2px;
+    }
+
+    /* --- EDITOR DECK --- */
+    .editor-deck {
+      display: flex;
+      margin: 0 12px 6px 12px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-deck);
+      border-radius: 7px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+      height: 120px;
+      position: relative;
+    }
+    .line-numbers {
+      width: 26px;
+      padding: 6px 4px;
+      background-color: #F6F3EB;
+      border-right: 1px solid var(--border-deck);
+      color: #A39B8E;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      text-align: right;
+      overflow: hidden;
+    }
+    .editor-textarea {
+      flex: 1;
+      border: none;
+      padding: 6px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-main);
+      background: transparent;
+      outline: none;
+      resize: none;
+      overflow-y: auto;
+      overflow-x: hidden;
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-wrap: break-word;
+    }
+
+    /* --- AFFIX ROWS --- */
+    .affix-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 12px 6px 12px;
+    }
+    .affix-field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .affix-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-sub);
+    }
+    .undo-action-btn {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+    .undo-action-btn:hover:not(:disabled) {
+      background: rgba(0,0,0,0.05);
+      color: var(--text-main);
+    }
+    .undo-action-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* --- SLIDERS --- */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 4px 0;
+    }
+    .slider-input {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      touch-action: none;
+      margin: 6px 0;
+    }
+    .slider-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-red);
+      cursor: grab;
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .slider-input:active::-webkit-slider-thumb {
+      cursor: grabbing;
+      box-shadow: 0 1px 4px rgba(242, 72, 34, 0.35);
+    }
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      margin: 0 12px 6px 12px;
+    }
+    .banner-warning {
+      background-color: #FFF8E6;
+      border: 1px solid #FFE4A3;
+      color: #92400E;
+    }
+    .banner-error {
+      background-color: #FFF0ED;
+      border: 1px solid #FBD0CA;
+      color: #D9362C;
+    }
+    .banner-success {
+      background-color: #EBF9F0;
+      border: 1px solid #C3EED0;
+      color: #1AAB29;
+    }
+
+    /* --- BUTTON EMBEDDED PROGRESS ANIMATIONS --- */
+    @keyframes pulse-ring-white {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+      70% { transform: scale(1.05); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* --- BOTTOM CHASSIS --- */
+    .bottom-chassis {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background-color: var(--bg-chassis);
+      border-top: none;
+      flex-shrink: 0;
+    }
+    .bottom-brand {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #B5AEA1;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+    /* --- MODAL --- */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      width: 280px; max-height: 400px;
+      background: var(--bg-surface);
+      border-radius: 10px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .modal-title { font-size: 13px; font-weight: 600; }
+    .modal-close {
+      background: none; border: none; font-size: 14px; cursor: pointer; color: var(--text-muted);
+    }
+    .modal-search { padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+    .modal-list {
+      flex: 1; overflow-y: auto; padding: 4px;
+    }
+    .modal-list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; cursor: pointer;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .modal-list-item:last-child {
+      border-bottom: none;
+    }
+    .modal-list-item:hover { background: var(--bg-hover); }
+    .modal-list-item.selected { background: transparent; }
+
+    .remove-lang-btn {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 16px;
+      height: 16px;
+      background: var(--accent-red);
+      color: white;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(235, 75, 75, 0.3);
+      z-index: 10;
+    }
+    .remove-lang-btn:hover {
+      background: #d43b3b;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 1. TOP 6 MODE BUTTONS -->
+    <nav class="keypad-container" id="keypad">
+      <button class="tactile-key active" data-tab="translate">
+        <span class="led-dot"></span>
+        <span>翻译</span>
+      </button>
+      <button class="tactile-key" data-tab="fill">
+        <span class="led-dot"></span>
+        <span>填充</span>
+      </button>
+      <button class="tactile-key" data-tab="compress">
+        <span class="led-dot"></span>
+        <span>压缩</span>
+      </button>
+      <button class="tactile-key" data-tab="color">
+        <span class="led-dot"></span>
+        <span>调色</span>
+      </button>
+      <button class="tactile-key" data-tab="tools">
+        <span class="led-dot"></span>
+        <span>小工具</span>
+      </button>
+      <button class="tactile-key" data-tab="settings">
+        <span class="led-dot"></span>
+        <span>设置</span>
+      </button>
+    </nav>
+
+    <!-- 2. MAIN DECK CONTAINER -->
+    <main class="deck-container">
+      <div class="deck-scroll-area" id="view-container">
+        <!-- Rendered view content -->
+      </div>
+    </main>
+
+    <!-- 3. BOTTOM CHASSIS -->
+    <footer class="bottom-chassis" id="bottom-bar">
+      <div class="bottom-brand">VolcBox</div>
+      <div class="bottom-brand"><span id="plugin-version">v1.0.0</span></div>
+    </footer>
+  </div>
+
+  <!-- LANGUAGE PICKER MODAL -->
+  <div id="lang-picker-modal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeLangPicker()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">添加目标语言</span>
+        <button class="modal-close" onclick="closeLangPicker()">✕</button>
+      </div>
+      <div class="modal-search">
+        <input type="text" id="lang-search-input" class="input-box" placeholder="搜索语言..." oninput="renderLangPickerList()" />
+      </div>
+      <div id="lang-picker-list" class="modal-list">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTEXT MENU -->
+  <div id="preset-context-menu" style="display: none; position: fixed; z-index: 9999; background: #FFF; border: 1px solid var(--border-deck); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 4px; min-width: 120px;">
+    <div style="padding: 6px 12px; font-size: 11px; cursor: pointer; color: var(--text-main); border-radius: 4px;" onclick="handlePresetContextMenu('edit')" onmouseover="this.style.background='#F5F5F5'" onmouseout="this.style.background='transparent'">设置预设</div>
+    <div style="border-top: 1px solid #EAE4D8; margin: 4px 0;"></div>
+    <div style="padding: 6px 12px; font-size: 11px; cursor: pointer; color: var(--text-main); border-radius: 4px;" onclick="handlePresetContextMenu('move-up')" onmouseover="this.style.background='#F5F5F5'" onmouseout="this.style.background='transparent'">上移排位</div>
+    <div style="padding: 6px 12px; font-size: 11px; cursor: pointer; color: var(--text-main); border-radius: 4px;" onclick="handlePresetContextMenu('move-down')" onmouseover="this.style.background='#F5F5F5'" onmouseout="this.style.background='transparent'">下移排位</div>
+    <div style="border-top: 1px solid #EAE4D8; margin: 4px 0;"></div>
+    <div style="padding: 6px 12px; font-size: 11px; cursor: pointer; color: var(--accent-red); border-radius: 4px;" onclick="handlePresetContextMenu('delete')" onmouseover="this.style.background='#FFF0F0'" onmouseout="this.style.background='transparent'">删除预设</div>
+  </div>
+
+  <script>
+    // =====================================================================
+    // FULL LANGUAGE LIBRARY (40+ Languages)
+    // =====================================================================
+    const ALL_LANGUAGES = [
+      { code: 'zh-CN', name: '简体中文', flag: '🇨🇳', en: 'Chinese (Simplified)' },
+      { code: 'zh-TW', name: '繁體中文', flag: '🇭🇰', en: 'Chinese (Traditional)' },
+      { code: 'en', name: '英语', flag: '🇺🇸', en: 'English' },
+      { code: 'ja', name: '日语', flag: '🇯🇵', en: 'Japanese' },
+      { code: 'ko', name: '韩语', flag: '🇰🇷', en: 'Korean' },
+      { code: 'fr', name: '法语', flag: '🇫🇷', en: 'French' },
+      { code: 'de', name: '德语', flag: '🇩🇪', en: 'German' },
+      { code: 'es', name: '西班牙语', flag: '🇪🇸', en: 'Spanish' },
+      { code: 'pt', name: '葡萄牙语', flag: '🇵🇹', en: 'Portuguese' },
+      { code: 'pt-BR', name: '巴西葡语', flag: '🇧🇷', en: 'Portuguese (BR)' },
+      { code: 'ru', name: '俄语', flag: '🇷🇺', en: 'Russian' },
+      { code: 'it', name: '意大利语', flag: '🇮🇹', en: 'Italian' },
+      { code: 'nl', name: '荷兰语', flag: '🇳🇱', en: 'Dutch' },
+      { code: 'pl', name: '波兰语', flag: '🇵🇱', en: 'Polish' },
+      { code: 'sv', name: '瑞典语', flag: '🇸🇪', en: 'Swedish' },
+      { code: 'da', name: '丹麦语', flag: '🇩🇰', en: 'Danish' },
+      { code: 'no', name: '挪威语', flag: '🇳🇴', en: 'Norwegian' },
+      { code: 'fi', name: '芬兰语', flag: '🇫🇮', en: 'Finnish' },
+      { code: 'cs', name: '捷克语', flag: '🇨🇿', en: 'Czech' },
+      { code: 'hu', name: '匈牙利语', flag: '🇭🇺', en: 'Hungarian' },
+      { code: 'ro', name: '罗马尼亚语', flag: '🇷🇴', en: 'Romanian' },
+      { code: 'el', name: '希腊语', flag: '🇬🇷', en: 'Greek' },
+      { code: 'tr', name: '土耳其语', flag: '🇹🇷', en: 'Turkish' },
+      { code: 'ar', name: '阿拉伯语', flag: '🇸🇦', en: 'Arabic' },
+      { code: 'he', name: '希伯来语', flag: '🇮🇱', en: 'Hebrew' },
+      { code: 'th', name: '泰语', flag: '🇹🇭', en: 'Thai' },
+      { code: 'vi', name: '越南语', flag: '🇻🇳', en: 'Vietnamese' },
+      { code: 'id', name: '印尼语', flag: '🇮🇩', en: 'Indonesian' },
+      { code: 'ms', name: '马来语', flag: '🇲🇾', en: 'Malay' },
+      { code: 'tl', name: '菲律宾语', flag: '🇵🇭', en: 'Filipino' },
+      { code: 'hi', name: '印地语', flag: '🇮🇳', en: 'Hindi' },
+      { code: 'bn', name: '孟加拉语', flag: '🇧🇩', en: 'Bengali' },
+      { code: 'ur', name: '乌尔都语', flag: '🇵🇰', en: 'Urdu' },
+      { code: 'uk', name: '乌克兰语', flag: '🇺🇦', en: 'Ukrainian' },
+      { code: 'bg', name: '保加利亚语', flag: '🇧🇬', en: 'Bulgarian' },
+      { code: 'hr', name: '克罗地亚语', flag: '🇭🇷', en: 'Croatian' },
+      { code: 'sk', name: '斯洛伐克语', flag: '🇸🇰', en: 'Slovak' },
+      { code: 'lt', name: '立陶宛语', flag: '🇱🇹', en: 'Lithuanian' },
+      { code: 'lv', name: '拉脱维亚语', flag: '🇱🇻', en: 'Latvian' },
+      { code: 'et', name: '爱沙尼亚语', flag: '🇪🇪', en: 'Estonian' },
+      { code: 'sl', name: '斯洛文尼亚语', flag: '🇸🇮', en: 'Slovenian' },
+      { code: 'sw', name: '斯瓦希里语', flag: '🇰🇪', en: 'Swahili' },
+      { code: 'af', name: '南非荷兰语', flag: '🇿🇦', en: 'Afrikaans' },
+      { code: 'ca', name: '加泰罗尼亚语', flag: '🏴', en: 'Catalan' },
+      { code: 'fa', name: '波斯语', flag: '🇮🇷', en: 'Persian' },
+      { code: 'mn', name: '蒙古语', flag: '🇲🇳', en: 'Mongolian' },
+      { code: 'my', name: '缅甸语', flag: '🇲🇲', en: 'Burmese' },
+      { code: 'km', name: '高棉语', flag: '🇰🇭', en: 'Khmer' },
+    ];
+
+    const DEFAULT_PINNED_CODES = ['en', 'zh-CN', 'ja', 'ko'];
+
+    // =====================================================================
+    // APP STATE & CORE LOGIC
+    // =====================================================================
+    const state = {
+      activeTab: 'translate',
+      targetLanguage: 'en',
+      translateMode: 'text',
+      protectText: true,
+      preserveRichText: true,
+      isTranslating: false,
+      langView: 'pinned',    // 'pinned' | 'all' | 'manage'
+      langSearch: '',
+      pinnedCodes: [...DEFAULT_PINNED_CODES],
+      fillMode: 'sequential',
+      fillPrefix: '',
+      fillSuffix: '',
+      fillLines: ['张伟', '王芳', '李娜', '刘洋', '陈杰', '杨敏', '赵敏', '周强'],
+      colorScope: 'all',
+      hue: 0,
+      saturation: 0,
+      lightness: 0,
+      selection: { totalSelected: 0, textNodeCount: 0, colorLayerCount: 0 },
+      hasLocalService: false,
+      settings: {
+        activeProviderId: 'free-fast',
+        customLlm: {
+          preset: 'deepseek',
+          baseUrl: 'https://api.deepseek.com',
+          apiKey: '',
+          model: 'deepseek-chat',
+          testResult: ''
+        },
+        providerCredentials: { deepseek: { apiKey: '' } },
+        translation: {
+          pinnedLanguageCodes: ['en', 'zh-CN', 'ja', 'ko'],
+          targetLanguage: 'en',
+          translateMode: 'text',
+          protectText: true,
+          preserveRichText: true,
+          profiles: []
+        },
+        fill: {
+          fillLines: ['张伟', '王芳', '李娜', '刘洋', '陈杰', '杨敏', '赵敏', '周强'],
+          fillPrefix: '',
+          fillSuffix: ''
+        }
+      },
+    };
+
+    function savePluginState() {
+      if (!state.settings) state.settings = {};
+      if (!state.settings.translation) state.settings.translation = {};
+      if (!state.settings.fill) state.settings.fill = {};
+
+      state.settings.translation.pinnedLanguageCodes = state.pinnedCodes;
+      state.settings.translation.targetLanguage = state.targetLanguage;
+      state.settings.translation.translateMode = state.translateMode;
+      state.settings.translation.protectText = state.protectText;
+      state.settings.translation.preserveRichText = state.preserveRichText;
+
+      state.settings.fill.fillLines = state.fillLines;
+      state.settings.fill.fillPrefix = state.fillPrefix;
+      state.settings.fill.fillSuffix = state.fillSuffix;
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'settings/save',
+          payload: {
+            activeProviderId: state.settings.activeProviderId,
+            customLlm: state.settings.customLlm,
+            providerCredentials: state.settings.providerCredentials,
+            translation: state.settings.translation,
+            fill: state.settings.fill
+          }
+        }
+      }, '*');
+    }
+
+    // Auto-detect local clipboard assistant service
+    async function checkLocalService() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 400);
+        const res = await fetch('http://127.0.0.1:3055/api/health', {
+          method: 'GET',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'ok') {
+            if (!state.hasLocalService) {
+              state.hasLocalService = true;
+              render();
+            }
+            return true;
+          }
+        }
+      } catch (e) {}
+      if (state.hasLocalService) {
+        state.hasLocalService = false;
+        render();
+      }
+      return false;
+    }
+
+    // Language helper functions
+    function getLangByCode(code) {
+      return ALL_LANGUAGES.find(l => l.code === code);
+    }
+    function getPinnedLanguages() {
+      return state.pinnedCodes.map(c => getLangByCode(c)).filter(Boolean);
+    }
+    function getFilteredLanguages() {
+      const q = state.langSearch.toLowerCase().trim();
+      if (!q) return ALL_LANGUAGES;
+      return ALL_LANGUAGES.filter(l =>
+        l.name.includes(q) || l.en.toLowerCase().includes(q) || l.code.toLowerCase().includes(q)
+      );
+    }
+    function togglePinLang(code) {
+      const idx = state.pinnedCodes.indexOf(code);
+      if (idx !== -1) {
+        if (state.pinnedCodes.length <= 1) return; // keep at least 1
+        state.pinnedCodes.splice(idx, 1);
+        if (state.targetLanguage === code) state.targetLanguage = state.pinnedCodes[0];
+      } else {
+        state.pinnedCodes.push(code);
+      }
+      savePluginState();
+      render();
+      renderLangPickerList(); // update modal if open
+    }
+    function removePinnedLang(code) {
+      const idx = state.pinnedCodes.indexOf(code);
+      if (idx !== -1 && state.pinnedCodes.length > 1) {
+        state.pinnedCodes.splice(idx, 1);
+        if (state.targetLanguage === code) {
+          state.targetLanguage = state.pinnedCodes[0];
+        }
+        savePluginState();
+        render();
+      }
+    }
+
+    // Scheme Management
+    function setActiveScheme(id) {
+      if (!state.settings.translation.profiles) return;
+      state.settings.translation.activeProfileId = id;
+      parent.postMessage({ pluginMessage: { type: 'settings/save', payload: { translation: state.settings.translation } } }, '*');
+      render();
+    }
+    function createNewScheme() {
+      state.editingScheme = {
+        id: 'new_' + Date.now(),
+        name: '新建翻译方案',
+        languages: [],
+        direction: 'right',
+        spacing: 100
+      };
+      render();
+    }
+    function editScheme(id) {
+      const s = state.settings.translation.profiles.find(p => p.id === id);
+      if (s) {
+        state.editingScheme = JSON.parse(JSON.stringify(s));
+        render();
+      }
+    }
+    function deleteScheme(id) {
+      state.settings.translation.profiles = state.settings.translation.profiles.filter(p => p.id !== id);
+      if (state.settings.translation.activeProfileId === id) {
+        state.settings.translation.activeProfileId = state.settings.translation.profiles[0]?.id || null;
+      }
+      state.editingScheme = null;
+      parent.postMessage({ pluginMessage: { type: 'settings/save', payload: { translation: state.settings.translation } } }, '*');
+      render();
+    }
+    function saveScheme() {
+      if (!state.editingScheme.name.trim()) return;
+      const profiles = state.settings.translation.profiles || [];
+      const idx = profiles.findIndex(p => p.id === state.editingScheme.id);
+      
+      const newProfile = { ...state.editingScheme };
+      if (newProfile.id.startsWith('new_')) {
+        newProfile.id = 'profile_' + Date.now();
+        profiles.push(newProfile);
+        state.settings.translation.activeProfileId = newProfile.id;
+      } else {
+        if (idx !== -1) profiles[idx] = newProfile;
+      }
+      
+      state.settings.translation.profiles = profiles;
+      state.editingScheme = null;
+      parent.postMessage({ pluginMessage: { type: 'settings/save', payload: { translation: state.settings.translation } } }, '*');
+      render();
+    }
+    function removeLangFromScheme(idx) {
+      state.editingScheme.languages.splice(idx, 1);
+      render();
+    }
+    function startBatchSchemeTranslation() {
+      const activeId = state.settings.translation.activeProfileId;
+      const profile = state.settings.translation.profiles.find(p => p.id === activeId);
+      if (!profile || profile.languages.length === 0) return;
+      
+      const enrichedProfile = {
+        ...profile,
+        languages: profile.languages.map(code => {
+           const l = getLangByCode(code);
+           return { code: code, name: l?.name || code, en: l?.en || code };
+        })
+      };
+
+      state.isTranslating = true;
+      render();
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'translation/frame-scheme-run',
+          requestId: Date.now().toString(),
+          payload: {
+            scheme: enrichedProfile,
+            preserveRichText: state.preserveRichText
+          }
+        }
+      }, '*');
+    }
+
+    // Modal controls
+    function openLangPicker(mode = 'single') {
+      state.langPickerMode = mode;
+      document.getElementById('lang-picker-modal').style.display = 'flex';
+      state.langSearch = '';
+      document.getElementById('lang-search-input').value = '';
+      renderLangPickerList();
+    }
+    function closeLangPicker() {
+      document.getElementById('lang-picker-modal').style.display = 'none';
+      state.langPickerMode = 'single';
+    }
+    function handleLangClick(code) {
+      if (state.langPickerMode === 'multi' && state.editingScheme) {
+        if (!state.editingScheme.languages.includes(code)) {
+          state.editingScheme.languages.push(code);
+          render();
+        }
+        closeLangPicker(); // Pick one and close, easier UX
+      } else {
+        togglePinLang(code);
+      }
+    }
+    function renderLangPickerList() {
+      const q = document.getElementById('lang-search-input').value.toLowerCase().trim();
+      const filtered = q ? ALL_LANGUAGES.filter(l => l.name.includes(q) || l.en.toLowerCase().includes(q) || l.code.toLowerCase().includes(q)) : ALL_LANGUAGES;
+      
+      const html = filtered.map(l => {
+        const isPinned = state.pinnedCodes.includes(l.code);
+        return `
+          <div class="modal-list-item ${isPinned ? 'selected' : ''}" onclick="handleLangClick('${l.code}')">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 16px;">${l.flag}</span>
+              <div>
+                <div style="font-size: 12px; font-weight: 500; color: var(--text-main);">${l.name}</div>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 1px;">${l.en}</div>
+              </div>
+            </div>
+            ${isPinned ? `<div style="width: 18px; height: 18px; border-radius: 50%; background: var(--accent-red); display: flex; align-items: center; justify-content: center;"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>` : `<div style="width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border-chassis);"></div>`}
+          </div>
+        `;
+      }).join('');
+      document.getElementById('lang-picker-list').innerHTML = html || '<div style="text-align:center; padding:16px; color:var(--text-muted);">无匹配结果</div>';
+    }
+
+    function renderInlineLangSearch(query) {
+      const resultsDiv = document.getElementById('inline-lang-results');
+      if (!resultsDiv) return;
+      if (!query.trim()) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+      const q = query.toLowerCase().trim();
+      const filtered = ALL_LANGUAGES.filter(l => 
+        l.name.includes(q) || l.en.toLowerCase().includes(q) || l.code.toLowerCase().includes(q)
+      );
+
+      if (filtered.length === 0) {
+        resultsDiv.innerHTML = `<div style="padding: 10px; font-size: 10.5px; color: var(--text-muted); text-align: center;">无匹配语言</div>`;
+      } else {
+        resultsDiv.innerHTML = filtered.map(l => `
+          <div style="padding: 10px; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-chassis);"
+               onmousedown="event.preventDefault(); addLangToScheme('${l.code}')">
+            <span>${l.flag}</span>
+            <span style="color: var(--text-main); font-weight: 500;">${l.name}</span>
+            <span style="color: var(--text-muted); font-size: 10px; margin-left: auto;">${l.en}</span>
+          </div>
+        `).join('');
+      }
+      resultsDiv.style.display = 'block';
+    }
+
+    function addLangToScheme(code) {
+      if (state.editingScheme && !state.editingScheme.languages.includes(code)) {
+        state.editingScheme.languages.push(code);
+      }
+      // Re-render the form. The inline search box will be reset, which is desired.
+      render();
+    }
+
+    function saveFillPresets(presets) {
+      if (state.settings) {
+        state.settings.fillPresets = presets;
+        parent.postMessage({ pluginMessage: { type: 'settings/save', payload: { fillPresets: presets } } }, '*');
+      }
+    }
+
+    function getFillPresets() {
+      if (state.settings && state.settings.fillPresets) {
+        return state.settings.fillPresets;
+      }
+      return [
+        { name: '中文姓名', lines: ['张伟', '王芳', '李娜', '刘洋', '陈杰', '杨敏', '赵敏', '周强'] },
+        { name: '英文姓名', lines: ['Emma Watson', 'Liam Smith', 'Olivia Johnson', 'Noah Williams', 'Ava Brown', 'Sophia Garcia'] },
+        { name: '常用城市', lines: ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京'] },
+        { name: '价格金额', lines: ['¥ 99.00', '¥ 199.00', '¥ 299.00', '¥ 499.00', '¥ 999.00'] },
+      ];
+    }
+    
+    window.showPresetContextMenu = function(idx, event) {
+      event.preventDefault();
+      event.stopPropagation();
+      state.contextMenuTargetIdx = idx;
+      
+      const menu = document.getElementById('preset-context-menu');
+      menu.style.display = 'block';
+      
+      // Calculate position
+      let x = event.clientX;
+      let y = event.clientY;
+      
+      // Keep within bounds
+      if (x + 120 > window.innerWidth) x = window.innerWidth - 120;
+      if (y + 100 > window.innerHeight) y = window.innerHeight - 100;
+      
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      
+      // Hide when clicking outside
+      const outsideClick = (e) => {
+        if (!menu.contains(e.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('click', outsideClick);
+        }
+      };
+      // Timeout ensures the current click doesn't immediately close it
+      setTimeout(() => {
+        document.addEventListener('click', outsideClick);
+      }, 0);
+    };
+
+    window.handlePresetContextMenu = function(action) {
+      const idx = state.contextMenuTargetIdx;
+      const menu = document.getElementById('preset-context-menu');
+      menu.style.display = 'none';
+      if (idx === undefined || idx === null) return;
+      
+      const current = getFillPresets();
+      
+      if (action === 'delete') {
+        current.splice(idx, 1);
+        saveFillPresets(current);
+        render();
+      } else if (action === 'edit') {
+        const p = current[idx];
+        state.editingPreset = {
+          isNew: false,
+          index: idx,
+          name: p.name,
+          linesText: p.lines.join('\n'),
+          mode: p.mode || 'sequential'
+        };
+        render();
+      } else if (action === 'move-up' && idx > 0) {
+        const temp = current[idx];
+        current[idx] = current[idx-1];
+        current[idx-1] = temp;
+        if (state.selectedFillPresetIndex === idx) state.selectedFillPresetIndex = idx - 1;
+        else if (state.selectedFillPresetIndex === idx - 1) state.selectedFillPresetIndex = idx;
+        saveFillPresets(current);
+        render();
+      } else if (action === 'move-down' && idx < current.length - 1) {
+        const temp = current[idx];
+        current[idx] = current[idx+1];
+        current[idx+1] = temp;
+        if (state.selectedFillPresetIndex === idx) state.selectedFillPresetIndex = idx + 1;
+        else if (state.selectedFillPresetIndex === idx + 1) state.selectedFillPresetIndex = idx;
+        saveFillPresets(current);
+        render();
+      }
+    };
+    // =====================================================================
+    // UI COMPONENTS & PRIMITIVES (LIGHTWEIGHT & REUSABLE)
+    // =====================================================================
+    const UIComponents = {
+      Switch(checked, onchangeStr, extraClass = '') {
+        return `
+          <label class="tactile-switch ${checked ? 'checked' : ''} ${extraClass}">
+            <input type="checkbox" style="display:none;" ${checked ? 'checked' : ''} onchange="${onchangeStr}" />
+            <div class="switch-knob"></div>
+          </label>
+        `;
+      },
+
+      Select(options, selectedValue, onchangeStr, maxWidth = '220px') {
+        const optsHtml = options.map(opt => {
+          const val = typeof opt === 'object' ? opt.value : opt;
+          const label = typeof opt === 'object' ? opt.label : opt;
+          const isSel = val === selectedValue ? 'selected' : '';
+          return `<option value="${val}" ${isSel}>${label}</option>`;
+        }).join('');
+
+        return `
+          <div class="select-wrapper" style="max-width: ${maxWidth};">
+            <select class="select-custom" onchange="${onchangeStr}">
+              ${optsHtml}
+            </select>
+            <div class="select-arrow">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+        `;
+      },
+
+      SettingRow(label, sublabel, rightControlHtml, options = {}) {
+        const style = options.style || '';
+        const minHeight = options.minHeight ? `min-height: ${options.minHeight};` : '';
+        const noBorder = options.noBorder ? 'border-bottom: none;' : '';
+        return `
+          <div class="setting-row" style="${minHeight} ${noBorder} ${style}">
+            <div class="setting-label-group">
+              <span class="setting-label">${label}</span>
+              ${sublabel ? `<span class="setting-sublabel">${sublabel}</span>` : ''}
+            </div>
+            ${rightControlHtml || ''}
+          </div>
+        `;
+      },
+
+      SettingGroup(rowsHtml, groupStyle = '') {
+        return `
+          <div class="setting-group" style="${groupStyle}">
+            ${rowsHtml}
+          </div>
+        `;
+      }
+    };
+
+    // =====================================================================
+    // VIEW RENDERERS (UNIFIED 4PT GRID TEMPLATE)
+    // =====================================================================
+    const Views = {
+      translate() {
+        const pinned = getPinnedLanguages();
+
+        const header = `
+          <div class="segmented-control">
+            <button class="segment-btn ${state.translateMode === 'text' ? 'active' : ''}" onclick="setTranslateMode('text')">原地文本翻译</button>
+            <button class="segment-btn ${state.translateMode === 'frame' ? 'active' : ''}" onclick="setTranslateMode('frame')">画板方案批量翻译</button>
+          </div>
+        `;
+
+        if (state.translateMode === 'frame') {
+          return header + this._renderSchemeList() + (state.editingScheme ? this._renderSchemeEdit() : '');
+        }
+
+        // Original Text Translate Mode
+        return header + `
+          <div class="lang-grid">
+            ${pinned.map(l => {
+              const isActive = state.targetLanguage === l.code;
+              const canRemove = isActive && pinned.length > 1;
+              return `
+              <button class="lang-chip ${isActive ? 'active' : ''}" style="position: relative;" onclick="setTargetLang('${l.code}')">
+                ${canRemove ? `<div class="remove-lang-btn" onclick="event.stopPropagation(); removePinnedLang('${l.code}')">✕</div>` : ''}
+                <div class="lang-chip-top">
+                  <span>${l.flag}</span>
+                  <span class="lang-name">${l.name}</span>
+                </div>
+                <span class="lang-en">${l.en}</span>
+              </button>
+              `;
+            }).join('')}
+            <button class="lang-chip" onclick="openLangPicker('single')" style="align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; min-height: 38px; border: 1px dashed #C8C0B2; background-color: #F5F3ED; box-shadow: none; transition: all 0.2s;">
+              <span>＋</span>
+            </button>
+          </div>
+
+          ${UIComponents.SettingGroup(
+            UIComponents.SettingRow(
+              '保留富文本分段样式',
+              '',
+              UIComponents.Switch(state.preserveRichText, 'togglePreserveRichText(this.checked)')
+            ),
+            'margin-top: 4px;'
+          )}
+
+          <div class="action-bar">
+            <button class="btn btn-primary" onclick="startTranslation()" ${state.isTranslating || state.selection.textNodeCount === 0 ? 'disabled' : ''}>
+              ${state.isTranslating ? '<span class="spinner"></span> 翻译中...' : '开始文本翻译'}
+            </button>
+            <button class="btn btn-secondary" onclick="undoTranslation()" style="width: auto;" title="撤回上一次翻译">
+              撤回
+            </button>
+          </div>
+        `;
+      },
+
+      _renderSchemeList() {
+        const profiles = state.settings?.translation?.profiles || [];
+        const activeId = state.settings?.translation?.activeProfileId;
+        
+        let listHtml = profiles.map(p => {
+          const isActive = p.id === activeId;
+          return `
+            <button class="lang-chip ${isActive ? 'active' : ''}" style="width: 100%; flex-direction: row; justify-content: space-between; align-items: center; padding: 12px 14px; min-height: 54px;" onclick="setActiveScheme('${p.id}')">
+              <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                <span class="lang-name" style="font-size: 12.5px;">${p.name}</span>
+                <span class="lang-en" style="font-size: 10.5px;">${p.languages.length} 种语言 · ${p.direction === 'right' ? '向右' : '向下'}克隆 ${p.spacing}px</span>
+              </div>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <div class="btn btn-secondary" style="height: 24px; padding: 0 10px; font-size: 10.5px;" onclick="event.stopPropagation(); editScheme('${p.id}')">编辑</div>
+                <div class="btn btn-secondary" style="height: 24px; width: 24px; padding: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted);" onclick="event.stopPropagation(); deleteScheme('${p.id}')" title="删除">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </div>
+              </div>
+            </button>
+          `;
+        }).join('');
+
+        return `
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 6px 12px; flex: 1; overflow-y: auto;">
+            ${listHtml}
+            <button class="lang-chip" onclick="createNewScheme()" style="width: 100%; flex-direction: row; align-items: center; justify-content: center; color: var(--text-muted); font-size: 12px; min-height: 48px; border: 1px dashed #C8C0B2; background-color: #F5F3ED; box-shadow: none; transition: all 0.2s;">
+              <span style="font-size: 14px; margin-right: 4px;">＋</span> 新建多语言画板方案
+            </button>
+          </div>
+          <div class="action-bar" style="margin-top: auto; padding-top: 12px;">
+            <button class="btn btn-primary" onclick="startBatchSchemeTranslation()" ${state.isTranslating || !activeId || state.selection.totalSelected === 0 ? 'disabled' : ''}>
+              ${state.isTranslating ? '<span class="spinner"></span> 生成中...' : '开始批量生成'}
+            </button>
+          </div>
+        `;
+      },
+
+      _renderSchemeEdit() {
+        if (!state.editingScheme) return '';
+        const s = state.editingScheme;
+        const langTags = s.languages.map((code, idx) => {
+          const l = getLangByCode(code);
+          return `
+            <div style="display: inline-flex; align-items: center; background: #F5F3ED; border: 1px solid #E8E2D5; border-radius: 6px; padding: 4px 8px; font-size: 11px; color: var(--text-main);">
+              <span style="margin-right: 4px;">${l?.flag}</span> 
+              <span>${l?.name}</span>
+              <span style="margin-left: 8px; color: var(--text-muted); cursor: pointer; font-size: 10px;" onclick="removeLangFromScheme(${idx})">✕</span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="modal-overlay" style="display: flex; z-index: 999;" onclick="if(event.target === this) { state.editingScheme = null; render(); }">
+            <div class="modal-content" style="width: 320px; max-height: 90vh;">
+              <div class="modal-header">
+                <span class="modal-title">${s.id.startsWith('new_') ? '新建' : '编辑'}方案</span>
+                <button class="modal-close" onclick="state.editingScheme = null; render();">✕</button>
+              </div>
+              
+              <div style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 10.5px; font-weight: 500; color: var(--text-sub);">方案名称</label>
+                  <input class="input-box" type="text" value="${s.name}" placeholder="例如：App Store 截图多语言" oninput="state.editingScheme.name = this.value; render();" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 10.5px; font-weight: 500; color: var(--text-sub);">目标语言序列（按生成顺序）</label>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;">
+                    ${langTags}
+                  </div>
+                  <div style="position: relative;">
+                    <input type="text" class="input-box" placeholder="搜索并添加语言..." id="inline-lang-search" oninput="renderInlineLangSearch(this.value)" onfocus="renderInlineLangSearch(this.value)" onblur="setTimeout(() => { const el = document.getElementById('inline-lang-results'); if(el) el.style.display = 'none'; }, 200)" autocomplete="off" />
+                    <div id="inline-lang-results" style="display: none; position: absolute; width: 100%; z-index: 10; max-height: 140px; overflow-y: auto; background: #FFFFFF; border: 1px solid var(--border-chassis); border-radius: 6px; margin-top: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 10.5px; font-weight: 500; color: var(--text-sub);">画板生成方向</label>
+                  <div class="segmented-control" style="margin: 0;">
+                    <button class="segment-btn ${s.direction === 'right' ? 'active' : ''}" onclick="state.editingScheme.direction = 'right'; render();">向右克隆排列</button>
+                    <button class="segment-btn ${s.direction === 'down' ? 'active' : ''}" onclick="state.editingScheme.direction = 'down'; render();">向下克隆排列</button>
+                  </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 10.5px; font-weight: 500; color: var(--text-sub);">新画板间距 (px)</label>
+                  <input class="input-box" type="number" value="${s.spacing}" oninput="state.editingScheme.spacing = parseInt(this.value) || 0; render();" />
+                </div>
+              </div>
+
+              <div class="action-bar" style="margin: 0; padding: 12px 16px; border-top: 1px solid var(--border-subtle); background: var(--bg-surface);">
+                ${!s.id.startsWith('new_') ? `<button class="btn btn-secondary" style="color: var(--accent-red); margin-right: auto;" onclick="deleteScheme('${s.id}')">删除</button>` : ''}
+                <button class="btn btn-primary" ${s.id.startsWith('new_') ? 'style="width: 100%;"' : 'style="flex: 1;"'} onclick="saveScheme()">保存方案</button>
+              </div>
+            </div>
+          </div>
+        `;
+      },
+
+      _renderPresetEdit() {
+        if (!state.editingPreset) return '';
+        const p = state.editingPreset;
+        return `
+          <div class="modal-overlay" style="display: flex; z-index: 999;" onclick="if(event.target === this) { state.editingPreset = null; render(); }">
+            <div class="modal-content" style="width: 320px; max-height: 90vh;">
+              <div class="modal-header">
+                <span class="modal-title">${p.isNew ? '新建预设' : '编辑预设'}</span>
+                <button class="modal-close" onclick="state.editingPreset = null; render();">✕</button>
+              </div>
+              
+              <div style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 10.5px; font-weight: 500; color: var(--text-sub);">预设名称</label>
+                  <input class="input-box" type="text" value="${p.name}" placeholder="例如：产品状态" oninput="state.editingPreset.name = this.value;" />
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 10.5px; font-weight: 500; color: var(--text-sub);">默认填充顺序</label>
+                  <div class="segmented-control" style="margin: 0;">
+                    <button class="segment-btn ${p.mode === 'sequential' ? 'active' : ''}" onclick="state.editingPreset.mode = 'sequential'; render();">正序</button>
+                    <button class="segment-btn ${p.mode === 'reverse' ? 'active' : ''}" onclick="state.editingPreset.mode = 'reverse'; render();">倒序</button>
+                    <button class="segment-btn ${p.mode === 'random' ? 'active' : ''}" onclick="state.editingPreset.mode = 'random'; render();">随机</button>
+                  </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label style="font-size: 10.5px; font-weight: 500; color: var(--text-sub);">填充数据内容 (每行一条)</label>
+                  <textarea class="input-box" wrap="off" style="min-height: 200px; height: auto; resize: none; padding: 8px; font-family: var(--font-mono); font-size: 11px; line-height: 1.5; white-space: pre; overflow-x: auto; overflow-wrap: normal;" oninput="state.editingPreset.linesText = this.value;">${p.linesText}</textarea>
+                </div>
+              </div>
+
+              <div class="action-bar" style="margin: 0; padding: 12px 16px; border-top: 1px solid var(--border-subtle); background: var(--bg-surface);">
+                <button class="btn btn-primary" style="width: 100%;" onclick="savePresetEdit()">保存预设</button>
+              </div>
+            </div>
+          </div>
+        `;
+      },
+
+      // 2. FILL VIEW
+      fill() {
+        const presets = getFillPresets();
+        const modalHtml = this._renderPresetEdit();
+
+        const renderSidebar = () => {
+           let html = `<div class="preset-grid">`;
+           // Smart Mock Default
+           html += `
+             <div class="preset-square" onclick="startSmartFill()" style="background: linear-gradient(135deg, #FFF9EB 0%, #F5F0E1 100%); border-color: #EAE4D8;">
+               <div style="font-size: 16px; margin-bottom: 2px;">✨</div>
+               <div class="preset-name" style="color: #D97706; font-weight: 600;">数据模拟</div>
+             </div>
+           `;
+           // User presets
+           presets.forEach((p, idx) => {
+             html += `
+               <div class="preset-square ${state.activePreset === idx ? 'active' : ''}" onclick="applyPreset(${idx})" oncontextmenu="showPresetContextMenu(${idx}, event)">
+                 <div class="preset-name">${p.name}</div>
+               </div>
+             `;
+           });
+           // Add button
+           html += `
+             <div class="preset-square" onclick="openPresetModal()" style="border-style: dashed; background: transparent;">
+               <div class="preset-icon" style="color: var(--text-muted); font-size: 14px; margin-bottom: 2px;">＋</div>
+               <div class="preset-name" style="color: var(--text-muted);">新建</div>
+             </div>
+           </div>`;
+           return html;
+        };
+
+        const renderMain = () => {
+           return `
+             ${modalHtml}
+             <div class="editor-deck" style="flex: 1; margin: 0;">
+               <div class="line-numbers" id="line-numbers">
+                 ${state.fillLines.map((_, i) => `<div>${i + 1}</div>`).join('')}
+               </div>
+               <textarea class="editor-textarea" id="fill-textarea" onscroll="document.getElementById('line-numbers').scrollTop = this.scrollTop" oninput="updateFillLines(this.value)">${state.fillLines.join('\n')}</textarea>
+             </div>
+
+             <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 2px 0;">
+               <div style="display: flex; align-items: center; gap: 6px; background: ${state.selection.totalSelected > 0 ? '#FFF4F4' : '#F8F6F1'}; padding: 3px 8px; border-radius: 12px; border: 1px solid ${state.selection.totalSelected > 0 ? '#FCE3E3' : 'var(--border-deck)'}; transition: all 0.2s ease;">
+                 <div style="width: 5px; height: 5px; border-radius: 50%; background: ${state.selection.totalSelected > 0 ? 'var(--accent-red)' : '#D9D2C4'};"></div>
+                 <span style="font-size: 10px; color: ${state.selection.totalSelected > 0 ? 'var(--accent-red)' : 'var(--text-sub)'}; font-weight: 500;">
+                   已选中 ${state.selection.totalSelected} 个图层
+                 </span>
+               </div>
+               <button class="undo-action-btn" onclick="undoFill()" title="撤回上一步填充" style="margin-right: 2px;" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+               </button>
+             </div>
+
+             <div class="affix-row" style="flex-shrink: 0; padding: 0;">
+               <div class="affix-field">
+                 <span class="affix-label">前缀</span>
+                 <input class="input-box" placeholder="如: ¥ " value="${state.fillPrefix}" oninput="state.fillPrefix = this.value" />
+               </div>
+               <div class="affix-field">
+                 <span class="affix-label">后缀</span>
+                 <input class="input-box" placeholder="如: /月" value="${state.fillSuffix}" oninput="state.fillSuffix = this.value" />
+               </div>
+             </div>
+
+             <div class="action-grid" style="grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; padding: 0; gap: 8px; margin-top: 4px; flex-shrink: 0;">
+               <button class="btn btn-primary" onclick="startFill('sequential')" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>正序填充</button>
+               <button class="btn btn-secondary" onclick="startFill('random')" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>随机填充</button>
+               <button class="btn btn-secondary" onclick="startFill('reverse')" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>倒序填充</button>
+               <button class="btn btn-secondary" onclick="startRename()" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>图层重命名</button>
+             </div>
+           `;
+        };
+
+        return `
+          <div class="fill-layout">
+            <div class="fill-sidebar">
+              ${renderSidebar()}
+            </div>
+            <div class="fill-main">
+              ${renderMain()}
+            </div>
+          </div>
+        `;
+      },
+
+      compress() {
+        const comp = state.settings?.compression || { exportScale: 2, exportFormat: 'PNG', zipName: '' };
+        
+        // Normalize keys (migrate old string arrays to objects)
+        if (comp.tinifyKeys) {
+           comp.tinifyKeys = comp.tinifyKeys.map(k => typeof k === 'string' ? { key: k, compressCount: 0 } : k);
+        }
+        
+        const keys = comp.tinifyKeys || [];
+        const hasKey = keys.length > 0;
+        const totalUsed = keys.reduce((sum, k) => sum + (k.compressCount || 0), 0);
+        const totalQuota = keys.length * 500;
+        
+        window.maskKey = (key) => key ? key.substring(0, 5) + '...' + key.substring(key.length - 4) : '';
+
+        return `
+          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="section-title">TinyPNG 账号池配置</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="section-hint" style="color: ${hasKey ? 'var(--text-secondary)' : 'var(--accent-red)'}">${hasKey ? `额度: ${totalUsed}/${totalQuota}` : '未配置'}</span>
+              ${hasKey ? `
+                <button onclick="refreshCompressQuotas(true)" style="background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 4px; display: flex; align-items: center; color: var(--text-tertiary);" title="从 TinyPNG 实时同步最新额度">
+                  <svg id="quota-refresh-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="card-deck" style="padding: 10px 12px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+               <span style="font-size: 11.5px; font-weight: 500;">添加 API Key (可选)</span>
+               <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 10px;" onclick="testCompressApiKey()">保存并添加</button>
+            </div>
+            <div style="position: relative; display: flex; align-items: center; margin-bottom: 10px;">
+              <input id="tinypng-key-input" class="input-box" style="padding-right: 32px; width: 100%; box-sizing: border-box;" type="password" placeholder="不填则默认使用本地无网引擎" />
+              <div onclick="togglePasswordVisibility('tinypng-key-input', this)" style="position: absolute; right: 8px; cursor: pointer; color: var(--text-secondary); display: flex; opacity: 0.7;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </div>
+            </div>
+            
+            ${hasKey ? `<div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 6px;">已激活账号池 (${keys.length})：</div>` : ''}
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${keys.map((k, i) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <span style="font-size: 11px; font-family: var(--font-mono);">${maskKey(k.key)}</span>
+                    <span style="font-size: 10px; color: ${(k.compressCount || 0) >= 500 ? 'var(--accent-red)' : 'var(--text-tertiary)'};">${k.compressCount || 0}/500</span>
+                  </div>
+                  <button onclick="removeCompressKey(${i})" style="background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 2px;">✕</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="setting-group" style="padding: 0 12px; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
+              <span style="font-size: 11.5px; font-weight: 500; color: var(--text-primary);">自定义文件夹名称</span>
+              <input class="input-box" style="width: 140px; font-size: 11px;" placeholder="默认: VolcBox_Export" value="${comp.zipName || ''}" onchange="setCompressFolder(this.value)" />
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
+              <span style="font-size: 11.5px; font-weight: 500; color: var(--text-primary);">输出格式</span>
+              <div class="segmented-control" style="width: 140px;">
+                <button class="segment-btn ${comp.exportFormat === 'PNG' ? 'active' : ''}" onclick="setCompressFormat('PNG')">PNG</button>
+                <button class="segment-btn ${comp.exportFormat === 'JPG' ? 'active' : ''}" onclick="setCompressFormat('JPG')">JPG</button>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+              <span style="font-size: 11.5px; font-weight: 500; color: var(--text-primary);">导出倍率</span>
+              <div class="segmented-control" style="width: 160px; display: flex;">
+                <button class="segment-btn ${comp.exportScale == 1 ? 'active' : ''}" onclick="setCompressScale(1)">1x</button>
+                <button class="segment-btn ${comp.exportScale == 2 ? 'active' : ''}" onclick="setCompressScale(2)">2x</button>
+                <button class="segment-btn ${comp.exportScale == 3 ? 'active' : ''}" onclick="setCompressScale(3)">3x</button>
+                <div style="position: relative; width: 48px; flex-shrink: 0;">
+                  <input class="segment-btn ${![1,2,3].includes(comp.exportScale) ? 'active' : ''}" 
+                         style="width: 100%; box-sizing: border-box; text-align: left; padding: 0 14px 0 6px; font-size: 11px; outline: none; border: none; margin: 0; cursor: text;" 
+                         placeholder="自定"
+                         value="${![1,2,3].includes(comp.exportScale) ? comp.exportScale : ''}" 
+                         onchange="setCompressScale(parseFloat(this.value) || 2)" />
+                  <span style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-primary); pointer-events: none; display: ${![1,2,3].includes(comp.exportScale) ? 'block' : 'none'};">x</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="action-bar" style="margin-top: auto; padding-top: 12px;">
+            <button id="export-btn" class="btn btn-primary" style="flex: 1; position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; padding: 0 14px;" onclick="startCompress()" ${state.selection.totalSelected === 0 || state.isCompressing ? 'disabled' : ''}>
+              ${state.isCompressing ? `
+                <div id="btn-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: ${state.compressProgress?.percent || 8}%; background: rgba(0, 0, 0, 0.22); transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; z-index: 1;"></div>
+                <div style="position: relative; z-index: 2; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%;">
+                  <div class="pulse-dot" style="width: 6px; height: 6px; background: #fff; box-shadow: 0 0 0 0 rgba(255,255,255,0.7); animation: pulse-ring-white 1.5s infinite; flex-shrink: 0;"></div>
+                  <span id="btn-status-text" style="font-size: 11px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${state.compressProgress?.text || '处理中...'}
+                  </span>
+                </div>
+                <div style="position: relative; z-index: 2; display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; flex-shrink: 0; opacity: 0.95;">
+                  <span id="btn-count-text">${state.compressProgress?.current || 0}/${state.compressProgress?.total || state.selection.totalSelected}</span>
+                  <span style="opacity: 0.6;">·</span>
+                  <span id="btn-timer-text">${state.compressProgress?.elapsed || '0.0s'}</span>
+                </div>
+              ` : `
+                <span style="width: 100%; text-align: center;">
+                  ${hasKey ? '云端极速压缩导出 (' + state.selection.totalSelected + ')' : '本地快速导出 (' + state.selection.totalSelected + ')'}
+                </span>
+              `}
+            </button>
+          </div>
+        `;
+      },
+
+      // 4. COLOR VIEW
+      color() {
+        return `
+          <div class="section-header">
+            <span class="section-title">调色范围</span>
+          </div>
+
+          <div class="segmented-control">
+            <button class="segment-btn ${state.colorScope === 'all' ? 'active' : ''}" onclick="setColorScope('all')">全部色彩</button>
+            <button class="segment-btn ${state.colorScope === 'fill' ? 'active' : ''}" onclick="setColorScope('fill')">仅填充</button>
+            <button class="segment-btn ${state.colorScope === 'stroke' ? 'active' : ''}" onclick="setColorScope('stroke')">仅描边</button>
+          </div>
+
+          <div class="section-header">
+            <span class="section-title">色彩调节 (HSL)</span>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span class="setting-label">色相 (Hue)</span>
+                <span id="val-hue" style="font-family: var(--font-mono); font-size: 11px; font-weight: 600;">${state.hue > 0 ? '+' : ''}${state.hue}°</span>
+              </div>
+              <input type="range" id="slider-hue" class="slider-input" min="-180" max="180" value="${state.hue}" oninput="updateColor('hue', this.value)" onkeydown="event.stopPropagation()" />
+            </div>
+            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span class="setting-label">饱和度 (Saturation)</span>
+                <span id="val-saturation" style="font-family: var(--font-mono); font-size: 11px; font-weight: 600;">${state.saturation > 0 ? '+' : ''}${state.saturation}%</span>
+              </div>
+              <input type="range" id="slider-saturation" class="slider-input" min="-100" max="100" value="${state.saturation}" oninput="updateColor('saturation', this.value)" onkeydown="event.stopPropagation()" />
+            </div>
+            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span class="setting-label">明度 (Lightness)</span>
+                <span id="val-lightness" style="font-family: var(--font-mono); font-size: 11px; font-weight: 600;">${state.lightness > 0 ? '+' : ''}${state.lightness}%</span>
+              </div>
+              <input type="range" id="slider-lightness" class="slider-input" min="-100" max="100" value="${state.lightness}" oninput="updateColor('lightness', this.value)" onkeydown="event.stopPropagation()" />
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button class="btn btn-primary" onclick="applyColor()" ${state.selection.colorLayerCount === 0 ? 'disabled' : ''}>应用调色</button>
+            <button class="btn btn-secondary" onclick="resetColor()">重置</button>
+          </div>
+        `;
+      },
+
+      // 5. TOOLS VIEW
+      tools() {
+        const hasLocal = state.hasLocalService;
+        return `
+          <div class="setting-group" style="border-top: none; margin-bottom: 6px;">
+            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: none;">
+              <span class="setting-label" style="font-size: 11.5px; font-weight: 500; color: var(--text-sub);">本地服务</span>
+              ${hasLocal ? `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 11px; color: var(--text-muted); cursor: pointer; text-decoration: underline;" onclick="uninstallLocalService()">卸载</span>
+                  <span style="font-size: 11px; color: var(--accent-green); font-weight: 600;">● 极速直拷已开启</span>
+                </div>
+              ` : `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 11px; color: var(--text-muted);">未开启</span>
+                  <span style="font-size: 11px; color: var(--accent-red); font-weight: 600; cursor: pointer; text-decoration: underline;" onclick="downloadHelperInstaller()">安装</span>
+                </div>
+              `}
+            </div>
+
+            <div style="border-top: 1px dashed #D8D2C5; margin: 0 12px;"></div>
+
+            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: none;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">画布生成拼图（带标题）</span>
+              </div>
+              <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="executeCollage()" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>${hasLocal ? '复制' : '生成'}</button>
+            </div>
+
+            <div style="border-top: 1px dashed #D8D2C5; margin: 0 12px;"></div>
+
+            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: 1px solid var(--border-subtle);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">批量导出所选画板</span>
+              </div>
+              <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="executeBatchExport()" ${(!hasLocal || state.selection.totalSelected === 0) ? 'disabled' : ''} ${!hasLocal ? 'title="需安装并开启本地助手服务"' : ''}>复制</button>
+            </div>
+
+            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: 1px solid var(--border-subtle);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/><path d="M18 10l2 2-2 2"/><path d="M6 10l-2 2 2 2"/></svg>
+                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">文本固定行高转auto</span>
+              </div>
+              <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="sendAction('line-height/fixed-to-auto')" ${state.selection.textNodeCount === 0 ? 'disabled' : ''}>执行</button>
+            </div>
+
+            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: 1px solid var(--border-subtle);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><polyline points="8 2 8 22"/></svg>
+                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">文本auto转固定行高</span>
+              </div>
+              <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="sendAction('line-height/auto-to-pixels')" ${state.selection.textNodeCount === 0 ? 'disabled' : ''}>执行</button>
+            </div>
+
+            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: none;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">裁切PNG透明边缘</span>
+              </div>
+              <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="sendAction('crop/trim-png')" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>执行</button>
+            </div>
+          </div>
+        `;
+      },
+
+      // 6. SETTINGS VIEW
+      settings() {
+        const custom = state.settings.customLlm || {
+          preset: 'deepseek',
+          baseUrl: 'https://api.deepseek.com',
+          apiKey: state.settings.providerCredentials?.deepseek?.apiKey || '',
+          model: 'deepseek-chat',
+          testResult: ''
+        };
+        const currentPreset = custom.preset || 'deepseek';
+        const providerConfig = LLM_PROVIDERS[currentPreset] || LLM_PROVIDERS.deepseek;
+        const availableModels = providerConfig.models || [];
+        const modelOptionsHtml = availableModels.map(m => `<option value="${m}">${m}</option>`).join('');
+
+        const cloudSync = state.settings.cloudSync || { enabled: false, syncKey: '', lastSyncTime: null, autoSync: true };
+        const isBound = !!(cloudSync.enabled && cloudSync.syncKey);
+
+        window.maskSyncKey = (key) => {
+          if (!key) return '';
+          if (key.length <= 12) return key;
+          return key.substring(0, 7) + '••••••••' + key.substring(key.length - 4);
+        };
+
+        window.formatSyncTime = (isoStr) => {
+          if (!isoStr) return '从未备份';
+          try {
+            const d = new Date(isoStr);
+            const now = new Date();
+            const diffMin = Math.round((now - d) / 60000);
+            if (diffMin < 1) return '刚刚';
+            if (diffMin < 60) return `${diffMin}分钟前`;
+            const m = (d.getMonth() + 1).toString().padStart(2, '0');
+            const day = d.getDate().toString().padStart(2, '0');
+            const h = d.getHours().toString().padStart(2, '0');
+            const min = d.getMinutes().toString().padStart(2, '0');
+            return `${m}-${day} ${h}:${min}`;
+          } catch {
+            return '刚刚';
+          }
+        };
+
+        return `
+          <!-- 0. 云端配置同步 (账号密钥体系) -->
+          <div class="section-header" style="padding-top: 2px;">
+            <span class="section-title">账号与多端配置同步</span>
+          </div>
+
+          <div class="card-deck" style="padding: 12px 14px; margin-bottom: 12px; background: var(--bg-deck); border: 1px solid var(--border-deck); border-radius: 10px;">
+            ${isBound ? `
+              <!-- 已绑定状态 -->
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 13px;">☁️</span>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">云端配置同步中</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span class="pulse-dot" style="width: 6px; height: 6px; background: var(--accent-green);"></span>
+                  <span style="font-size: 10.5px; color: var(--accent-green); font-weight: 600;">已开启自动同步</span>
+                </div>
+              </div>
+              
+              <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-tertiary, rgba(0,0,0,0.03)); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
+                  <span style="font-size: 10.5px; color: var(--text-sub); flex-shrink: 0;">密钥:</span>
+                  <span style="font-size: 11px; font-family: var(--font-mono); font-weight: 600; color: var(--text-main); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${maskSyncKey(cloudSync.syncKey)}</span>
+                </div>
+                <button class="btn btn-secondary" onclick="copySyncKey('${cloudSync.syncKey}')" style="padding: 2px 8px; font-size: 10px; height: 22px; flex-shrink: 0;">📋 复制密钥</button>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--text-sub); margin-bottom: 10px;">
+                <span>上次同步: ${formatSyncTime(cloudSync.lastSyncTime)}</span>
+                <span>包含 Key / 词库 / 偏好等 6 项配置</span>
+              </div>
+
+              <div style="display: flex; gap: 6px;">
+                <button class="btn btn-secondary" id="btn-push-sync" style="flex: 1; height: 26px; font-size: 10.5px;" onclick="pushSyncBackup()">⬆️ 立即备份</button>
+                <button class="btn btn-secondary" id="btn-pull-sync" style="flex: 1; height: 26px; font-size: 10.5px;" onclick="pullSyncBackup()">⬇️ 立即拉取</button>
+                <button class="btn btn-secondary" style="height: 26px; font-size: 10.5px; color: var(--accent-red); border-color: rgba(242,72,34,0.3);" onclick="unbindSyncKey()">解绑</button>
+              </div>
+            ` : `
+              <!-- 未绑定状态 -->
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 13px;">☁️</span>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">云端配置多端同步</span>
+                </div>
+                <span style="font-size: 10px; color: var(--text-sub); background: #EDE8DE; padding: 2px 6px; border-radius: 4px; font-weight: 500;">跨设备免配置</span>
+              </div>
+              <div style="font-size: 10.5px; color: var(--text-sub); line-height: 1.4; margin-bottom: 10px;">
+                绑定同步密钥/激活码，换设备一键恢复所有 API Key、TinyPNG 池与词库偏好。
+              </div>
+              <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                <input class="input-box" id="input-sync-key" placeholder="输入已有密钥 (如 VB-xxxx...)" style="flex: 1; height: 28px; font-size: 11px; font-family: var(--font-mono);" />
+                <button class="btn btn-primary" id="btn-bind-sync" style="height: 28px; padding: 0 12px; font-size: 11px; flex-shrink: 0;" onclick="bindSyncKey()">绑定并同步</button>
+              </div>
+              <div style="display: flex; justify-content: flex-end;">
+                <button onclick="createSyncKey()" style="background: none; border: none; font-size: 10.5px; color: var(--accent-blue); cursor: pointer; text-decoration: underline; padding: 0;">✨ 首次使用？一键创建新密钥并备份</button>
+              </div>
+            `}
+          </div>
+
+          <!-- 1. 官方免费通道状态卡片 -->
+          <div class="setting-group" style="border-top: none; margin-bottom: 8px;">
+            <div class="setting-row" style="padding: 10px 12px; min-height: 44px; border-bottom: none;">
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="status-indicator-dot"></span>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">极速翻译引擎</span>
+                  <span style="font-size: 10px; color: var(--text-sub); background: #EDE8DE; padding: 1px 5px; border-radius: 3px; font-weight: 500;">免配置</span>
+                </div>
+                <span style="font-size: 10.5px; color: var(--text-sub);">全球 100+ 语言即开即用 · 毫秒级多通道加速</span>
+              </div>
+              <div id="free-channel-status" style="display: flex; align-items: center; gap: 4px;">
+                <span style="font-size: 11px; color: var(--accent-green); font-weight: 600;">● 运行正常</span>
+              </div>
+            </div>
+
+            <!-- 异常状态与排查建议（动态展开） -->
+            <div id="free-channel-error-box" style="display: none; margin: 0 12px 10px 12px; padding: 8px 10px; background: rgba(255, 69, 58, 0.06); border: 1px solid rgba(255, 69, 58, 0.2); border-radius: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+                <span style="font-size: 11px; font-weight: 600; color: var(--accent-red);">⚠️ 免费通道连接受阻</span>
+                <span style="font-size: 10px; color: var(--accent-red); cursor: pointer; text-decoration: underline;" onclick="checkFreeChannelHealth()">重新检测</span>
+              </div>
+              <div style="font-size: 10px; color: var(--text-sub); line-height: 1.4;">
+                建议：1. 检查当前网络或 VPN 代理设置；2. 在下方配置自定义大模型 API Key 即可稳定使用。
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. 自定义大模型接口卡片 -->
+          <div class="section-header" style="padding-top: 4px;">
+            <span class="section-title">自定义 AI 大模型（可选）</span>
+          </div>
+
+          <div class="setting-group" style="margin-bottom: 8px;">
+            <!-- Row 1: 服务商预设 -->
+            <div class="setting-row" style="padding: 8px 12px;">
+              <span class="setting-label" style="font-size: 11.5px; font-weight: 500; min-width: 65px;">服务商</span>
+              <div class="select-wrapper" style="max-width: 220px;">
+                <select class="select-custom" id="llm-provider-select" onchange="onLlmProviderChange(this.value)">
+                  <option value="deepseek" ${currentPreset === 'deepseek' ? 'selected' : ''}>DeepSeek AI (官方推荐)</option>
+                  <option value="openai" ${currentPreset === 'openai' ? 'selected' : ''}>OpenAI (ChatGPT / GPT-4o)</option>
+                  <option value="kimi" ${currentPreset === 'kimi' ? 'selected' : ''}>Kimi (月之暗面 Moonshot)</option>
+                  <option value="zhipu" ${currentPreset === 'zhipu' ? 'selected' : ''}>智谱 GLM (GLM-4)</option>
+                  <option value="siliconflow" ${currentPreset === 'siliconflow' ? 'selected' : ''}>SiliconFlow (硅基流动)</option>
+                  <option value="custom" ${currentPreset === 'custom' ? 'selected' : ''}>自定义接口 (Custom API)</option>
+                </select>
+                <div class="select-arrow">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: API Key -->
+            <div class="setting-row" style="padding: 8px 12px;">
+              <div class="setting-label-group" style="min-width: 65px;">
+                <span class="setting-label" style="font-size: 11.5px; font-weight: 500;">API Key</span>
+                <span class="setting-sublabel" style="font-size: 9.5px;">本地存储</span>
+              </div>
+              <div class="input-with-action" style="max-width: 220px;">
+                <input class="input-box" type="${state.showApiKey ? 'text' : 'password'}" id="custom-api-key" placeholder="${providerConfig.placeholder || 'sk-...'}" value="${custom.apiKey || ''}" oninput="updateCustomLlmField('apiKey', this.value)" style="height: 28px; font-size: 11px; font-family: var(--font-mono);" />
+                <button class="input-action-btn" type="button" onclick="toggleApiKeyVisibility()" title="${state.showApiKey ? '隐藏 Key' : '显示 Key'}">
+                  ${state.showApiKey ? `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  ` : `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  `}
+                </button>
+              </div>
+            </div>
+
+            <!-- Row 3: 模型名称 (组合下拉框) -->
+            <div class="setting-row" style="padding: 8px 12px;">
+              <div class="setting-label-group" style="min-width: 65px;">
+                <span class="setting-label" style="font-size: 11.5px; font-weight: 500;">模型名称</span>
+                <span class="setting-sublabel" style="font-size: 9.5px;">可选或输入</span>
+              </div>
+              <div style="position: relative; width: 100%; max-width: 220px;">
+                <input class="input-box" list="llm-model-options" id="custom-model" placeholder="选择或输入模型" value="${custom.model || ''}" oninput="updateCustomLlmField('model', this.value)" style="height: 28px; font-size: 11px; font-family: var(--font-mono);" />
+                <datalist id="llm-model-options">
+                  ${modelOptionsHtml}
+                </datalist>
+              </div>
+            </div>
+
+            <!-- Row 4: 接口地址 -->
+            <div class="setting-row" style="padding: 8px 12px;">
+              <span class="setting-label" style="font-size: 11.5px; font-weight: 500; min-width: 65px;">接口地址</span>
+              <input class="input-box" type="text" id="custom-base-url" placeholder="https://api.deepseek.com" value="${custom.baseUrl || ''}" oninput="updateCustomLlmField('baseUrl', this.value)" style="height: 28px; font-size: 11px; font-family: var(--font-mono); max-width: 220px;" />
+            </div>
+
+            <!-- Row 5: 底部测试连接与状态 -->
+            <div class="setting-row" style="padding: 10px 12px; min-height: 44px; border-bottom: none;">
+              <div id="llm-test-status" style="font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">
+                ${custom.testResult ? custom.testResult : '输入 Key 后点击测试连接'}
+              </div>
+              <button class="btn btn-primary" id="btn-test-llm" style="height: 26px; padding: 0 14px; font-size: 11.5px; flex-shrink: 0;" onclick="testCustomLlmConnection()">测试连接</button>
+            </div>
+          </div>
+        `;
+      }
+    };
+
+    // =====================================================================
+    // CONTROLLER & EVENT HANDLERS
+    // =====================================================================
+    function render() {
+      const container = document.getElementById('view-container');
+      if (container && Views[state.activeTab]) {
+        container.innerHTML = Views[state.activeTab]();
+      }
+
+      // Update Top Keypad Buttons Active state
+      document.querySelectorAll('#keypad .tactile-key').forEach(btn => {
+        const tab = btn.getAttribute('data-tab');
+        if (tab === state.activeTab) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      if (state.activeTab === 'fill' && window.updateLineNumbers) {
+        setTimeout(window.updateLineNumbers, 0);
+      }
+    }
+
+    // Keypad tab click binding
+    document.querySelectorAll('#keypad .tactile-key').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.activeTab = btn.getAttribute('data-tab');
+        if (state.activeTab === 'tools') {
+          checkLocalService();
+        }
+        if (state.activeTab === 'compress') {
+          refreshCompressQuotas(false);
+        }
+        render();
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      if (state.activeTab === 'fill' && window.updateLineNumbers) {
+        window.updateLineNumbers();
+      }
+    });
+
+    window.executeCollage = async function() {
+      if (state.hasLocalService) {
+        sendAction('artboards/render-composite-for-local', {});
+      } else {
+        sendAction('artboards/create-canvas-composite', { withTitles: true });
+      }
+    };
+
+    window.executeBatchExport = async function() {
+      if (state.hasLocalService) {
+        sendAction('artboards/export-files-for-local', {});
+      } else {
+        sendAction('export/export-selected-artboards', {});
+      }
+    };
+
+    window.downloadHelperInstaller = async function() {
+      const scriptContent = `#!/bin/bash
+# ==========================================
+# VolcBox Mac 剪贴板极速助手 Launcher
+# ==========================================
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+HELPER_DIR="$HOME/.volcbox-helper"
+HELPER_SCRIPT=""
+
+# 1. Check if server.js exists in current folder or known plugin directory
+if [ -f "$DIR/server.js" ]; then
+  HELPER_SCRIPT="$DIR/server.js"
+elif [ -f "/Users/haifeng/Desktop/Volc AI/Figma插件/VolcBox重构版/server.js" ]; then
+  HELPER_SCRIPT="/Users/haifeng/Desktop/Volc AI/Figma插件/VolcBox重构版/server.js"
+else
+  mkdir -p "$HELPER_DIR"
+  HELPER_SCRIPT="$HELPER_DIR/server.js"
+  cat << 'EOF' > "$HELPER_SCRIPT"
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { exec } = require('child_process');
+
+const PORT = 3055;
+const TEMP_DIR = path.join(os.tmpdir(), 'volcbox_clipboard');
+if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+const server = http.createServer((req, res) => {
+  setCorsHeaders(res);
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+  
+  if (req.method === 'GET' && req.url === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', platform: os.platform() }));
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/api/clipboard/write-image') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { imageBase64 } = JSON.parse(body);
+        const buffer = Buffer.from(imageBase64.replace(/^data:image\\/\\w+;base64,/, ''), 'base64');
+        const tempPath = path.join(TEMP_DIR, \`composite_\${Date.now()}.png\`);
+        fs.writeFileSync(tempPath, buffer);
+        const jxa = \`ObjC.import('AppKit'); var pb = $.NSPasteboard.generalPasteboard; pb.clearContents; var imgData = $.NSData.dataWithContentsOfFile('\${tempPath}'); if (imgData) { pb.setDataForType(imgData, $.NSPasteboardTypePNG); }\`;
+        exec(\`osascript -l JavaScript -e "\${jxa}"\`, (err) => {
+          if (err) { res.writeHead(500); res.end(JSON.stringify({ error: err.message })); }
+          else { res.writeHead(200); res.end(JSON.stringify({ success: true })); }
+        });
+      } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/api/clipboard/write-files') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { files } = JSON.parse(body);
+        const writtenPaths = [];
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          const buffer = Buffer.from(f.base64.replace(/^data:image\\/\\w+;base64,/, ''), 'base64');
+          const safeName = (f.name || \`artboard_\${i+1}\`).replace(/[\\\\/:*?"<>|]/g, '_');
+          const p = path.join(TEMP_DIR, \`\${i+1}_\${safeName}.png\`);
+          fs.writeFileSync(p, buffer);
+          writtenPaths.push(p);
+        }
+        const jxaItems = writtenPaths.map(p => {
+          const escaped = p.replace(/"/g, '\\\\"');
+          return \`var item = $.NSPasteboardItem.alloc.init; var fileUrl = $.NSURL.fileURLWithPath("\${escaped}"); item.setStringForType(fileUrl.absoluteString, "public.file-url"); items.addObject(item); filenames.addObject($("\${escaped}"));\`;
+        }).join(' ');
+        const jxa = \`ObjC.import('AppKit'); var pb = $.NSPasteboard.generalPasteboard; pb.clearContents; var items = $.NSMutableArray.array; var filenames = $.NSMutableArray.array; \${jxaItems} pb.writeObjects(items); pb.setPropertyListForType(filenames, "NSFilenamesPboardType");\`;
+        exec(\`osascript -l JavaScript -e '\${jxa.replace(/'/g, "'\\\\''")}'\`, (err) => {
+          if (err) { res.writeHead(500); res.end(JSON.stringify({ error: err.message })); }
+          else { res.writeHead(200); res.end(JSON.stringify({ success: true, count: writtenPaths.length })); }
+        });
+      } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
+    });
+    return;
+  }
+  res.writeHead(404); res.end();
+});
+
+server.listen(PORT, '127.0.0.1');
+EOF
+fi
+
+# Find node path
+NODE_PATH=$(which node 2>/dev/null || echo "/usr/local/bin/node")
+if [ ! -f "$NODE_PATH" ]; then
+  if [ -f "/opt/homebrew/bin/node" ]; then
+    NODE_PATH="/opt/homebrew/bin/node"
+  fi
+fi
+
+kill $(lsof -t -i:3055) 2>/dev/null
+nohup "$NODE_PATH" "$HELPER_SCRIPT" > /dev/null 2>&1 &
+
+echo "=========================================="
+echo "🎉 VolcBox 剪贴板助手已成功启动！"
+echo "📂 服务路径: $HELPER_SCRIPT"
+echo "👉 请返回 Figma 插件，极速直拷模式已自动点亮！"
+echo "=========================================="
+`;
+
+      try {
+        const zip = new JSZip();
+        // Give 755 (rwxr-xr-x) UNIX execution permissions so macOS double click runs directly
+        zip.file('VolcBox助手启动.command', scriptContent, {
+          unixPermissions: '755'
+        });
+
+        const zipBlob = await zip.generateAsync({
+          type: 'blob',
+          platform: 'UNIX'
+        });
+
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'VolcBox助手_解压双击运行.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        parent.postMessage({
+          pluginMessage: {
+            type: 'toast',
+            payload: '📥 助手压缩包已下载，解压后双击运行即可点亮！'
+          }
+        }, '*');
+      } catch (err) {
+        console.error('[Download Helper Error]', err);
+        // Fallback to command file
+        const blob = new Blob([scriptContent], { type: 'text/x-sh' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'VolcBox助手启动.command';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    };
+
+    window.uninstallLocalService = async function() {
+      try {
+        await fetch('http://127.0.0.1:3055/api/service/uninstall', {
+          method: 'POST'
+        });
+      } catch (e) {}
+      state.hasLocalService = false;
+      render();
+      parent.postMessage({
+        pluginMessage: {
+          type: 'toast',
+          payload: '🗑️ 本地助手服务已成功卸载并停止运行'
+        }
+      }, '*');
+    };
+
+    // Translation methods
+    window.setTranslateMode = function(mode) {
+      state.translateMode = mode;
+      savePluginState();
+      render();
+    };
+    window.setTargetLang = function(code) {
+      state.targetLanguage = code;
+      savePluginState();
+      render();
+    };
+    window.toggleProtectText = function() {
+      state.protectText = !state.protectText;
+      savePluginState();
+      render();
+    };
+    window.togglePreserveRichText = function() {
+      state.preserveRichText = !state.preserveRichText;
+      savePluginState();
+      render();
+    };
+    window.startTranslation = function() {
+      state.isTranslating = true;
+      render();
+      if (state.translateMode === 'text') {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'translation/start',
+            payload: {
+              targetLanguage: state.targetLanguage,
+              protectText: state.protectText,
+              preserveRichText: state.preserveRichText
+            }
+          }
+        }, '*');
+      } else {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'translation/frame-start',
+            payload: {}
+          }
+        }, '*');
+      }
+    };
+    window.undoTranslation = function() {
+      parent.postMessage({
+        pluginMessage: { type: 'translation/undo', payload: {} }
+      }, '*');
+    };
+
+    window.undoFill = function() {
+      parent.postMessage({ pluginMessage: { type: 'fill/undo' } }, '*');
+    };
+
+    // Fill methods
+    window.openPresetModal = function() {
+      state.editingPreset = {
+        isNew: true,
+        name: '',
+        linesText: state.fillLines.join('\n'),
+        mode: 'sequential'
+      };
+      render();
+    };
+
+    window.savePresetEdit = function() {
+      const p = state.editingPreset;
+      if (!p) return;
+      const trimmedName = (p.name || '').trim();
+      if (!trimmedName) {
+        parent.postMessage({ pluginMessage: { type: 'notify', payload: { message: '预设名称不能为空' } } }, '*');
+        return;
+      }
+      
+      const current = getFillPresets();
+      const lines = p.linesText.split('\n').filter(l => l.trim().length > 0);
+      
+      const presetData = { name: trimmedName, lines: lines, mode: p.mode || 'sequential' };
+
+      if (p.isNew) {
+        current.push(presetData);
+      } else {
+        current[p.index] = presetData;
+      }
+      
+      saveFillPresets(current);
+      state.editingPreset = null;
+      render();
+    };
+
+    window.applyPreset = function(idx) {
+      const p = getFillPresets()[idx];
+      if (p) {
+        state.fillLines = [...p.lines];
+        render();
+        startFill(p.mode || 'sequential');
+      }
+    };
+
+    window.updateLineNumbers = function() {
+      const textarea = document.getElementById('fill-textarea');
+      const lineNumbersEl = document.getElementById('line-numbers');
+      if (!textarea || !lineNumbersEl) return;
+
+      const lines = textarea.value.split('\n');
+      
+      let measureDiv = document.getElementById('fill-measure-div');
+      if (!measureDiv) {
+        measureDiv = document.createElement('div');
+        measureDiv.id = 'fill-measure-div';
+        measureDiv.style.cssText = 'position: absolute; left: -9999px; top: -9999px; visibility: hidden; pointer-events: none; white-space: pre-wrap; word-break: break-all; overflow-wrap: break-word; font-family: var(--font-mono); font-size: 11px; line-height: 1.5; box-sizing: border-box;';
+        document.body.appendChild(measureDiv);
+      }
+
+      const paddingX = 16; // 8px left + 8px right
+      const targetWidth = Math.max(20, textarea.clientWidth - paddingX);
+      measureDiv.style.width = targetWidth + 'px';
+
+      let html = '';
+      for (let i = 0; i < lines.length; i++) {
+        measureDiv.textContent = lines[i] || ' ';
+        const h = Math.max(16.5, measureDiv.offsetHeight || 16.5);
+        html += `<div style="height: ${h}px; line-height: 16.5px; box-sizing: border-box;">${i + 1}</div>`;
+      }
+      lineNumbersEl.innerHTML = html;
+    };
+
+    let fillSaveDebounce = null;
+    window.updateFillLines = function(val) {
+      const rawLines = val.split('\n');
+      state.fillLines = rawLines;
+      window.updateLineNumbers();
+      
+      if (fillSaveDebounce) clearTimeout(fillSaveDebounce);
+      fillSaveDebounce = setTimeout(() => {
+        savePluginState();
+      }, 500);
+    };
+
+    window.startSmartFill = function() {
+      if (state.selection.totalSelected === 0) {
+        parent.postMessage({ pluginMessage: { type: 'notify', payload: { message: '请先选中包含文本的图层或画板' } } }, '*');
+        return;
+      }
+      parent.postMessage({ pluginMessage: { type: 'fill/smart' } }, '*');
+    };
+
+    window.startFill = function(mode) {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'fill/start',
+          payload: {
+            lines: state.fillLines,
+            prefix: state.fillPrefix,
+            suffix: state.fillSuffix,
+            mode
+          }
+        }
+      }, '*');
+    };
+    
+    window.startRename = function() {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'layers/rename',
+          payload: {
+            lines: state.fillLines,
+            prefix: state.fillPrefix,
+            suffix: state.fillSuffix,
+            mode: 'sequential'
+          }
+        }
+      }, '*');
+    };
+
+    // Color methods
+    let pendingPreviewPayload = null;
+    let isProcessingPreview = false;
+
+    window.setColorScope = function(scope) {
+      state.colorScope = scope;
+      render();
+      window.sendColorPreview();
+    };
+
+    window.updateColor = function(prop, val) {
+      state[prop] = parseInt(val, 10);
+      const valEl = document.getElementById('val-' + prop);
+      if (valEl) {
+        valEl.textContent = (state[prop] > 0 ? '+' : '') + state[prop] + (prop === 'hue' ? '°' : '%');
+      }
+      window.sendColorPreview();
+    };
+
+    window.sendColorPreview = function() {
+      pendingPreviewPayload = {
+        hue: state.hue,
+        saturation: state.saturation,
+        lightness: state.lightness,
+        scope: state.colorScope
+      };
+
+      if (!isProcessingPreview) {
+        flushColorPreview();
+      }
+    };
+
+    function flushColorPreview() {
+      if (!pendingPreviewPayload) return;
+      isProcessingPreview = true;
+      const payloadToSend = pendingPreviewPayload;
+      pendingPreviewPayload = null;
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'color/preview',
+          payload: payloadToSend
+        }
+      }, '*');
+
+      // 16ms single-flight throttle (60fps synced)
+      setTimeout(() => {
+        isProcessingPreview = false;
+        if (pendingPreviewPayload) {
+          flushColorPreview();
+        }
+      }, 16);
+    }
+    window.resetColor = function() {
+      state.hue = 0;
+      state.saturation = 0;
+      state.lightness = 0;
+      
+      const hInput = document.getElementById('slider-hue');
+      const sInput = document.getElementById('slider-saturation');
+      const lInput = document.getElementById('slider-lightness');
+      if (hInput) hInput.value = 0;
+      if (sInput) sInput.value = 0;
+      if (lInput) lInput.value = 0;
+      
+      const hVal = document.getElementById('val-hue');
+      const sVal = document.getElementById('val-saturation');
+      const lVal = document.getElementById('val-lightness');
+      if (hVal) hVal.textContent = '0°';
+      if (sVal) sVal.textContent = '0%';
+      if (lVal) lVal.textContent = '0%';
+      
+      parent.postMessage({ pluginMessage: { type: 'color/reset' } }, '*');
+    };
+    window.applyColor = function() {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'color/apply',
+          payload: { hue: state.hue, saturation: state.saturation, lightness: state.lightness, scope: state.colorScope }
+        }
+      }, '*');
+      // Reset sliders visually since the applied colors are now the new baseline
+      state.hue = 0;
+      state.saturation = 0;
+      state.lightness = 0;
+      
+      const hInput = document.getElementById('slider-hue');
+      const sInput = document.getElementById('slider-saturation');
+      const lInput = document.getElementById('slider-lightness');
+      if (hInput) hInput.value = 0;
+      if (sInput) sInput.value = 0;
+      if (lInput) lInput.value = 0;
+      
+      const hVal = document.getElementById('val-hue');
+      const sVal = document.getElementById('val-saturation');
+      const lVal = document.getElementById('val-lightness');
+      if (hVal) hVal.textContent = '0°';
+      if (sVal) sVal.textContent = '0%';
+      if (lVal) lVal.textContent = '0%';
+    };
+
+    // Tools & Settings methods
+    window.sendAction = function(type, payload = {}) {
+      parent.postMessage({ pluginMessage: { type, payload } }, '*');
+    };
+    const saveCompressionSettings = () => {
+      parent.postMessage({ pluginMessage: { type: 'settings/save', payload: { compression: state.settings.compression } } }, '*');
+    };
+    window.togglePasswordVisibility = (inputId, iconContainer) => {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        iconContainer.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22"></path></svg>`;
+      } else {
+        input.type = 'password';
+        iconContainer.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+      }
+    };
+    window.testCompressApiKey = () => {
+      const val = document.getElementById('tinypng-key-input').value.trim();
+      if (!val) {
+        parent.postMessage({ pluginMessage: { type: 'toast', payload: '请先输入 API Key' } }, '*');
+        return;
+      }
+      
+      const comp = state.settings.compression || {};
+      const keys = comp.tinifyKeys || [];
+      const exists = keys.find(k => (k.key === val || k === val));
+      if (exists) {
+        parent.postMessage({ pluginMessage: { type: 'toast', payload: '该 API Key 已在池中，请勿重复添加' } }, '*');
+        return;
+      }
+      
+      parent.postMessage({ pluginMessage: { type: 'toast', payload: '正在验证 Key...' } }, '*');
+      parent.postMessage({ 
+        pluginMessage: { type: 'compression/test-api', payload: { apiKey: val } } 
+      }, '*');
+    };
+    window.refreshCompressQuotas = (manual = false) => {
+      const comp = state.settings?.compression || {};
+      const keys = comp.tinifyKeys || [];
+      if (keys.length === 0) return;
+
+      if (manual) {
+        const svg = document.getElementById('quota-refresh-svg');
+        if (svg) svg.style.animation = 'spin 0.8s linear infinite';
+      }
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'compression/refresh-quotas',
+          payload: { tinifyKeys: keys, manual }
+        }
+      }, '*');
+    };
+    window.removeCompressKey = (index) => {
+      if(!state.settings.compression) return;
+      state.settings.compression.tinifyKeys.splice(index, 1);
+      saveCompressionSettings();
+      render();
+    };
+    window.setCompressFolder = (val) => {
+      if(!state.settings.compression) state.settings.compression = {};
+      state.settings.compression.zipName = val;
+      saveCompressionSettings();
+    };
+    window.setCompressScale = (val) => {
+      if(!state.settings.compression) state.settings.compression = {};
+      state.settings.compression.exportScale = val;
+      saveCompressionSettings();
+      render();
+    };
+    window.setCompressFormat = (val) => {
+      if(!state.settings.compression) state.settings.compression = {};
+      state.settings.compression.exportFormat = val;
+      saveCompressionSettings();
+      render();
+    };
+    window.setCompressEngine = (val) => {
+      if(!state.settings.compression) state.settings.compression = {};
+      state.settings.compression.engine = val;
+      saveCompressionSettings();
+      render();
+    };
+    let compressTimerInterval = null;
+    let compressStartTime = 0;
+
+    window.startCompress = function() {
+      if (state.selection.totalSelected === 0) {
+        parent.postMessage({ pluginMessage: { type: 'toast', payload: '请先在画布中选择需要导出的图层', error: true } }, '*');
+        return;
+      }
+
+      const comp = state.settings.compression || {};
+      const keys = comp.tinifyKeys || [];
+
+      state.isCompressing = true;
+      compressStartTime = Date.now();
+      state.compressProgress = {
+        percent: 8,
+        current: 0,
+        total: state.selection.totalSelected,
+        layerName: '初始化 6 线程并发引擎...',
+        text: '准备提取画板...',
+        elapsed: '0.0s'
+      };
+
+      if (compressTimerInterval) clearInterval(compressTimerInterval);
+      compressTimerInterval = setInterval(() => {
+        if (!state.isCompressing) {
+          clearInterval(compressTimerInterval);
+          return;
+        }
+        const diff = ((Date.now() - compressStartTime) / 1000).toFixed(1) + 's';
+        if (state.compressProgress) state.compressProgress.elapsed = diff;
+        const timerEl = document.getElementById('btn-timer-text');
+        if (timerEl) timerEl.innerText = diff;
+      }, 100);
+
+      render();
+      
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'compression/start', 
+          payload: { 
+            scale: comp.exportScale || 2, 
+            format: comp.exportFormat || 'PNG',
+            tinifyKeys: keys,
+            zipName: comp.zipName || 'VolcBox_Export'
+          } 
+        } 
+      }, '*');
+    };
+    const LLM_PROVIDERS = {
+      deepseek: {
+        name: 'DeepSeek AI (推荐 · 性价比极高)',
+        baseUrl: 'https://api.deepseek.com',
+        defaultModel: 'deepseek-chat',
+        models: ['deepseek-chat', 'deepseek-reasoner'],
+        placeholder: 'sk-...'
+      },
+      openai: {
+        name: 'OpenAI (ChatGPT / GPT-4o)',
+        baseUrl: 'https://api.openai.com/v1',
+        defaultModel: 'gpt-4o-mini',
+        models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+        placeholder: 'sk-proj-...'
+      },
+      kimi: {
+        name: 'Kimi (月之暗面 Moonshot)',
+        baseUrl: 'https://api.moonshot.cn/v1',
+        defaultModel: 'moonshot-v1-8k',
+        models: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'],
+        placeholder: 'sk-...'
+      },
+      zhipu: {
+        name: '智谱 GLM (GLM-4)',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        defaultModel: 'glm-4-flash',
+        models: ['glm-4-flash', 'glm-4-plus', 'glm-4-air'],
+        placeholder: '...'
+      },
+      siliconflow: {
+        name: 'SiliconFlow (硅基流动)',
+        baseUrl: 'https://api.siliconflow.cn/v1',
+        defaultModel: 'deepseek-ai/DeepSeek-V3',
+        models: ['deepseek-ai/DeepSeek-V3', 'deepseek-ai/DeepSeek-R1', 'Qwen/Qwen2.5-72B-Instruct'],
+        placeholder: 'sk-...'
+      },
+      custom: {
+        name: '自定义兼容接口 (Custom API)',
+        baseUrl: '',
+        defaultModel: '',
+        models: [],
+        placeholder: 'your-api-key'
+      }
+    };
+
+    window.onLlmProviderChange = function(providerKey) {
+      if (!state.settings.customLlm) state.settings.customLlm = {};
+      const prov = LLM_PROVIDERS[providerKey] || LLM_PROVIDERS.deepseek;
+      state.settings.customLlm.preset = providerKey;
+      if (providerKey !== 'custom') {
+        state.settings.customLlm.baseUrl = prov.baseUrl;
+        state.settings.customLlm.model = prov.defaultModel;
+      }
+      state.settings.customLlm.testResult = '';
+      savePluginState();
+      render();
+    };
+
+    window.checkFreeChannelHealth = async function() {
+      const statusEl = document.getElementById('free-channel-status');
+      const errBox = document.getElementById('free-channel-error-box');
+      if (statusEl) statusEl.innerHTML = '<span style="font-size: 11px; color: var(--text-sub);">⏳ 检测中...</span>';
+      try {
+        const res = await UITranslationEngine.translateSingle('Hello', 'zh-CN');
+        if (res && res === '你好') {
+          if (statusEl) statusEl.innerHTML = '<span style="font-size: 11px; color: var(--accent-green); font-weight: 600;">● 运行正常</span>';
+          if (errBox) errBox.style.display = 'none';
+        } else {
+          throw new Error('Fallback failed');
+        }
+      } catch (err) {
+        if (statusEl) statusEl.innerHTML = '<span style="font-size: 11px; color: var(--accent-red); font-weight: 600; cursor: pointer;" onclick="checkFreeChannelHealth()">● 连接异常 (重试)</span>';
+        if (errBox) errBox.style.display = 'block';
+      }
+    };
+
+    window.updateCustomLlmField = function(field, value) {
+      if (!state.settings.customLlm) state.settings.customLlm = {};
+      state.settings.customLlm[field] = value;
+      state.settings.customLlm.testResult = '';
+      savePluginState();
+    };
+
+    window.toggleApiKeyVisibility = function() {
+      state.showApiKey = !state.showApiKey;
+      render();
+    };
+
+    window.testCustomLlmConnection = async function() {
+      const custom = state.settings.customLlm || {};
+      const statusEl = document.getElementById('llm-test-status');
+      const testBtn = document.getElementById('btn-test-llm');
+      
+      if (!custom.apiKey || !custom.apiKey.trim()) {
+        if (statusEl) statusEl.innerHTML = '<span style="color: var(--accent-red); font-weight: 500;">❌ 请先输入 API Key</span>';
+        return;
+      }
+
+      if (statusEl) statusEl.innerHTML = '<span style="color: var(--text-sub);">⏳ 正在连接测试中...</span>';
+      if (testBtn) { testBtn.disabled = true; testBtn.innerText = '测试中...'; }
+
+      try {
+        const cleanBase = (custom.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
+        const url = cleanBase.endsWith('/chat/completions') ? cleanBase : `${cleanBase}/chat/completions`;
+        const startTime = Date.now();
+
+        const res = await UITranslationEngine.fetchWithTimeout(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${custom.apiKey.trim()}`
+          },
+          body: JSON.stringify({
+            model: custom.model || 'deepseek-chat',
+            messages: [{ role: 'user', content: 'Say OK' }],
+            max_tokens: 5,
+            temperature: 0.1
+          })
+        }, 10000);
+
+        const duration = Date.now() - startTime;
+        if (res.ok) {
+          const successMsg = `<span style="color: var(--accent-green); font-weight: 600;">✅ 连接成功 (${duration}ms)</span>`;
+          state.settings.customLlm.testResult = successMsg;
+          if (statusEl) statusEl.innerHTML = successMsg;
+          savePluginState();
+        } else {
+          let errDetail = `HTTP ${res.status}`;
+          try {
+            const errJson = await res.json();
+            errDetail = errJson.error?.message || errJson.message || errDetail;
+          } catch(e) {}
+          const failMsg = `<span style="color: var(--accent-red); font-weight: 500;" title="${errDetail}">❌ 失败: ${errDetail.slice(0, 20)}</span>`;
+          state.settings.customLlm.testResult = failMsg;
+          if (statusEl) statusEl.innerHTML = failMsg;
+        }
+      } catch (err) {
+        const failMsg = `<span style="color: var(--accent-red); font-weight: 500;">❌ 超时或网络异常</span>`;
+        state.settings.customLlm.testResult = failMsg;
+        if (statusEl) statusEl.innerHTML = failMsg;
+      } finally {
+        if (testBtn) { testBtn.disabled = false; testBtn.innerText = '测试连接'; }
+      }
+    };
+
+    // =====================================================================
+    // ACCOUNT & CLOUD SYNC ACTIONS
+    // =====================================================================
+    window.bindSyncKey = function() {
+      const input = document.getElementById('input-sync-key');
+      const val = (input ? input.value : '').trim();
+      if (!val) {
+        parent.postMessage({ pluginMessage: { type: 'toast', payload: '请输入同步密钥' } }, '*');
+        return;
+      }
+      const btn = document.getElementById('btn-bind-sync');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '正在同步...';
+      }
+      parent.postMessage({ pluginMessage: { type: 'account/bind-sync-key', payload: { syncKey: val } } }, '*');
+    };
+
+    window.createSyncKey = function() {
+      parent.postMessage({ pluginMessage: { type: 'toast', payload: '正在生成密钥并备份配置...' } }, '*');
+      parent.postMessage({ pluginMessage: { type: 'account/create-sync-key' } }, '*');
+    };
+
+    window.pushSyncBackup = function() {
+      const btn = document.getElementById('btn-push-sync');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '正在备份...';
+      }
+      parent.postMessage({ pluginMessage: { type: 'account/push-backup' } }, '*');
+    };
+
+    window.pullSyncBackup = function() {
+      const btn = document.getElementById('btn-pull-sync');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '正在拉取...';
+      }
+      parent.postMessage({ pluginMessage: { type: 'account/pull-backup' } }, '*');
+    };
+
+    window.unbindSyncKey = function() {
+      if (confirm('确定要解除当前设备的云端同步绑定吗？（云端备份数据不会被删除）')) {
+        parent.postMessage({ pluginMessage: { type: 'account/unbind' } }, '*');
+      }
+    };
+
+    window.copySyncKey = function(key) {
+      if (!key) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(key).then(() => {
+          parent.postMessage({ pluginMessage: { type: 'toast', payload: '📋 密钥已复制到剪贴板！可在其他电脑粘贴同步' } }, '*');
+        }).catch(() => {
+          fallbackCopyText(key);
+        });
+      } else {
+        fallbackCopyText(key);
+      }
+    };
+
+    function fallbackCopyText(text) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        parent.postMessage({ pluginMessage: { type: 'toast', payload: '📋 密钥已复制到剪贴板！可在其他电脑粘贴同步' } }, '*');
+      } catch (err) {
+        parent.postMessage({ pluginMessage: { type: 'toast', payload: '复制失败，请手动复制: ' + text } }, '*');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // =====================================================================
+    // UI-SIDE TRANSLATION ENGINE (Has Network Access)
+    // =====================================================================
+    const UITranslationEngine = {
+      cache: new Map(),
+
+      guessSourceLang(text) {
+        if (/[\u4e00-\u9fff]/.test(text)) return 'zh-CN';
+        if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja';
+        if (/[\uac00-\ud7af]/.test(text)) return 'ko';
+        if (/[\u0400-\u04ff]/.test(text)) return 'ru';
+        if (/[\u0600-\u06ff]/.test(text)) return 'ar';
+        if (/[\u0e00-\u0e7f]/.test(text)) return 'th';
+        if (/[a-zA-Z]/.test(text)) return 'en';
+        return 'auto';
+      },
+
+      async fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const res = await fetch(url, { ...options, signal: controller.signal });
+          clearTimeout(timer);
+          return res;
+        } catch (e) {
+          clearTimeout(timer);
+          throw e;
+        }
+      },
+
+      async translateSingle(text, targetLang) {
+        const trimmed = (text || '').trim();
+        if (!trimmed) return text;
+        
+        // If the string does not contain any letters (Latin, CJK, Cyrillic, Arabic, Thai, etc.), it's likely just numbers/symbols
+        if (!/[a-zA-Z\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f]/.test(trimmed)) {
+          return trimmed;
+        }
+
+        const cacheKey = `${targetLang}:${trimmed}`;
+        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+
+        const srcLang = this.guessSourceLang(trimmed);
+        if (srcLang === targetLang && !srcLang.startsWith('zh')) return trimmed;
+
+        // Channel 1: Google GTX Direct
+        try {
+          const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(trimmed)}`;
+          const res = await this.fetchWithTimeout(gtxUrl, {}, 8000);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data[0]) {
+              const resText = data[0].map(item => item[0]).join('');
+              if (resText && resText !== trimmed) {
+                this.cache.set(cacheKey, resText);
+                return resText;
+              }
+            }
+          }
+        } catch (e) {}
+
+        // Channel 2: Google Dict
+        try {
+          const dictUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=${encodeURIComponent(targetLang)}&q=${encodeURIComponent(trimmed)}`;
+          const res = await this.fetchWithTimeout(dictUrl, {}, 8000);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data) && data[0]) {
+              const resText = Array.isArray(data[0]) ? data[0][0] : (typeof data[0] === 'string' ? data[0] : null);
+              if (resText && resText !== trimmed) {
+                this.cache.set(cacheKey, resText);
+                return resText;
+              }
+            }
+          }
+        } catch (e) {}
+
+        // Channel 3: MyMemory API
+        try {
+          const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=${encodeURIComponent(srcLang)}|${encodeURIComponent(targetLang)}`;
+          const res = await this.fetchWithTimeout(myMemoryUrl, {}, 8000);
+          if (res.ok) {
+            const data = await res.json();
+            const resText = data?.responseData?.translatedText;
+            if (resText && 
+                !resText.includes('MYMEMORY WARNING') && 
+                !resText.includes('INVALID SOURCE LANGUAGE') && 
+                resText.toUpperCase() !== trimmed.toUpperCase()) {
+              this.cache.set(cacheKey, resText);
+              return resText;
+            }
+          }
+        } catch (e) {}
+
+        return trimmed;
+      },
+
+      async translateBatch(texts, targetLang, customConfig) {
+        const uniqueTexts = Array.from(new Set(texts.map(t => (t || '').trim()).filter(Boolean)));
+        const resultMap = new Map();
+
+        const toTranslate = uniqueTexts.filter(t => {
+          const src = this.guessSourceLang(t);
+          if (src === targetLang && !src.startsWith('zh')) { resultMap.set(t, t); return false; }
+          return true;
+        });
+
+        // 1. Custom LLM (DeepSeek / OpenAI / Kimi / Custom)
+        if (customConfig?.apiKey && toTranslate.length > 0) {
+          try {
+            const prompt = toTranslate.map((t, idx) => `[${idx}] ${t}`).join('\n');
+            const cleanBase = (customConfig.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
+            const url = cleanBase.endsWith('/chat/completions') ? cleanBase : `${cleanBase}/chat/completions`;
+
+            const res = await this.fetchWithTimeout(url, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${customConfig.apiKey.trim()}` 
+              },
+              body: JSON.stringify({
+                model: customConfig.model || 'deepseek-chat',
+                messages: [
+                  { role: 'system', content: `You are a professional UI/UX localization translator. Translate each numbered item to "${targetLang}". Output format: exactly one translated line per item with its number prefix "[0] ...", "[1] ...". Do not add comments or explanations. Keep placeholders like {name}, %s, $1 intact.` },
+                  { role: 'user', content: prompt },
+                ],
+                temperature: 0.1,
+              }),
+            }, 15000);
+
+            if (res.ok) {
+              const data = await res.json();
+              const content = data.choices?.[0]?.message?.content || '';
+              const lines = content.split('\n');
+              for (const line of lines) {
+                const match = line.match(/^\[(\d+)\]\s*(.*)$/);
+                if (match) {
+                  const idx = parseInt(match[1], 10);
+                  if (toTranslate[idx]) resultMap.set(toTranslate[idx], match[2].trim());
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[Custom LLM Batch Error]', e);
+          }
+        }
+
+        // 2. Batch merge via Google GTX for untranslated items
+        const pending = toTranslate.filter(t => !resultMap.has(t));
+        if (pending.length > 1 && pending.length <= 50) {
+          try {
+            const delimiter = '\n\n⟦⟧\n\n';
+            const joined = pending.join(delimiter);
+            const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(joined)}`;
+            const res = await this.fetchWithTimeout(gtxUrl, {}, 12000);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data[0]) {
+                const fullText = data[0].map(item => item[0]).join('');
+                const parts = fullText.split(/\s*⟦⟧\s*/);
+                if (parts.length === pending.length) {
+                  pending.forEach((orig, idx) => {
+                    const trans = (parts[idx] || '').trim();
+                    if (trans && trans !== orig) {
+                      resultMap.set(orig, trans);
+                      this.cache.set(`${targetLang}:${orig}`, trans);
+                    }
+                  });
+                }
+              }
+            }
+          } catch (e) {}
+        }
+
+        // Concurrent individual requests
+        const stillPending = toTranslate.filter(t => !resultMap.has(t));
+        if (stillPending.length > 0) {
+          const concurrency = 8;
+          for (let i = 0; i < stillPending.length; i += concurrency) {
+            const chunk = stillPending.slice(i, i + concurrency);
+            await Promise.all(
+              chunk.map(async (text) => {
+                const trans = await this.translateSingle(text, targetLang);
+                resultMap.set(text, trans);
+              })
+            );
+          }
+        }
+
+        return resultMap;
+      }
+    };
+
+    // =====================================================================
+    // =====================================================================
+    // MESSAGE BUS & ROUTER (MODULAR DISPATCH)
+    // =====================================================================
+    const MessageHandlers = {
+      'app/initialized'(payload) {
+        if (payload?.settings) {
+          state.settings = payload.settings;
+          const tr = state.settings.translation;
+          if (tr?.pinnedLanguageCodes?.length > 0) state.pinnedCodes = [...tr.pinnedLanguageCodes];
+          if (tr?.targetLanguage) state.targetLanguage = tr.targetLanguage;
+          if (tr?.translateMode) state.translateMode = tr.translateMode;
+          if (typeof tr?.protectText === 'boolean') state.protectText = tr.protectText;
+          if (typeof tr?.preserveRichText === 'boolean') state.preserveRichText = tr.preserveRichText;
+          const fl = state.settings.fill;
+          if (fl?.fillLines?.length > 0) state.fillLines = [...fl.fillLines];
+          if (fl?.fillPrefix !== undefined) state.fillPrefix = fl.fillPrefix;
+          if (fl?.fillSuffix !== undefined) state.fillSuffix = fl.fillSuffix;
+          if (state.settings.compression?.tinifyKeys?.length > 0) {
+            setTimeout(() => refreshCompressQuotas(false), 200);
+          }
+        }
+        if (payload?.selection) state.selection = payload.selection;
+        render();
+      },
+
+      'selection/changed'(payload) {
+        if (payload) state.selection = payload;
+        render();
+      },
+
+      async 'translation/do-translate'(payload, requestId) {
+        const { targetLanguage, nodeTexts, preserveRichText } = payload;
+        const isCustom = state.settings?.activeProviderId === 'custom-llm' || state.settings?.activeProviderId === 'deepseek';
+        const customConfig = isCustom ? (state.settings?.customLlm || state.settings?.providerCredentials?.deepseek) : null;
+        
+        try {
+          const rawTexts = nodeTexts.map(n => n.text);
+          const resultMap = await UITranslationEngine.translateBatch(rawTexts, targetLanguage, customConfig);
+          const results = nodeTexts.map(n => ({
+            id: n.id,
+            translated: resultMap.get((n.text || '').trim()) || n.text,
+            richStyles: n.richStyles
+          }));
+
+          parent.postMessage({
+            pluginMessage: {
+              type: 'translation/apply-results',
+              requestId,
+              payload: { results, preserveRichText }
+            }
+          }, '*');
+        } catch (e) {
+          parent.postMessage({
+            pluginMessage: {
+              type: 'task/failed',
+              requestId,
+              payload: { error: { message: e.message } }
+            }
+          }, '*');
+        }
+      },
+
+      async 'translation/do-scheme-translate'(payload, requestId) {
+        const { batches, preserveRichText } = payload;
+        const isCustom = state.settings?.activeProviderId === 'custom-llm' || state.settings?.activeProviderId === 'deepseek';
+        const customConfig = isCustom ? (state.settings?.customLlm || state.settings?.providerCredentials?.deepseek) : null;
+        
+        try {
+          const allResults = [];
+          for (const batch of batches) {
+            const rawTexts = batch.nodeTexts.map(n => n.text);
+            const resultMap = await UITranslationEngine.translateBatch(rawTexts, batch.targetLanguage, customConfig);
+            const results = batch.nodeTexts.map(n => ({
+              id: n.id,
+              translated: resultMap.get((n.text || '').trim()) || n.text,
+              richStyles: n.richStyles
+            }));
+            allResults.push(...results);
+          }
+
+          parent.postMessage({
+            pluginMessage: {
+              type: 'translation/apply-results',
+              requestId,
+              payload: { results: allResults, preserveRichText }
+            }
+          }, '*');
+        } catch (e) {
+          parent.postMessage({
+            pluginMessage: {
+              type: 'task/failed',
+              requestId,
+              payload: { error: { message: e.message } }
+            }
+          }, '*');
+        }
+      },
+
+      'compression/test-api-result'(payload) {
+        const { success, error, apiKey, compressionCount } = payload;
+        if (success) {
+          if (!state.settings.compression) state.settings.compression = {};
+          if (!state.settings.compression.tinifyKeys) state.settings.compression.tinifyKeys = [];
+          
+          const existing = state.settings.compression.tinifyKeys.find(k => k.key === apiKey);
+          if (existing) {
+            existing.compressCount = compressionCount || 0;
+          } else {
+            state.settings.compression.tinifyKeys.push({ key: apiKey, compressCount: compressionCount || 0 });
+          }
+          saveCompressionSettings();
+          render();
+          parent.postMessage({ pluginMessage: { type: 'toast', payload: '✅ 添加成功！' } }, '*');
+        } else {
+          parent.postMessage({ pluginMessage: { type: 'toast', payload: error, error: true } }, '*');
+        }
+      },
+
+      'compression/refresh-quotas-result'(payload) {
+        const { keys = [], manual } = payload || {};
+        if (state.settings?.compression?.tinifyKeys) {
+          keys.forEach(k => {
+            const match = state.settings.compression.tinifyKeys.find(x => x.key === k.key);
+            if (match) {
+              match.compressCount = k.compressCount;
+            }
+          });
+          saveCompressionSettings();
+          render();
+        }
+        if (manual) {
+          parent.postMessage({ pluginMessage: { type: 'toast', payload: '✅ TinyPNG 额度已刷新' } }, '*');
+        }
+      },
+
+      'compression/progress'(payload) {
+        const { current, total, layerName, text, phase } = payload || {};
+        if (!total) return;
+        
+        let pct = Math.round((current / total) * 100);
+        if (phase === 'start') pct = 8;
+        if (phase === 'packing') pct = 98;
+        if (pct < 8 && phase !== 'start') pct = Math.max(8, pct);
+        if (pct > 98 && phase !== 'packing') pct = 98;
+
+        if (!state.compressProgress) state.compressProgress = {};
+        state.compressProgress.percent = pct;
+        state.compressProgress.current = current;
+        state.compressProgress.total = total;
+        state.compressProgress.layerName = layerName || '';
+        state.compressProgress.text = text || '';
+
+        // Instant direct DOM updates inside the button capsule
+        const fillEl = document.getElementById('btn-progress-fill');
+        if (fillEl) fillEl.style.width = `${pct}%`;
+
+        const countEl = document.getElementById('btn-count-text');
+        if (countEl) countEl.innerText = `${current}/${total}`;
+
+        const statusEl = document.getElementById('btn-status-text');
+        if (statusEl) statusEl.innerText = text || (layerName ? `正在处理: ${layerName}` : `正在并发处理 (${current}/${total})`);
+      },
+
+      'compression/quota-update'(payload) {
+        const { apiKey, count } = payload;
+        if (state.settings.compression?.tinifyKeys) {
+          const k = state.settings.compression.tinifyKeys.find(x => x.key === apiKey);
+          if (k) { k.compressCount = count; saveCompressionSettings(); render(); }
+        }
+      },
+
+      async 'compression/done'(payload) {
+        if (compressTimerInterval) clearInterval(compressTimerInterval);
+        const { items, zipName, error } = payload;
+        const btn = document.getElementById('export-btn');
+        
+        if (error || !items || items.length === 0) {
+          if (btn) {
+            btn.innerHTML = `<span style="width: 100%; text-align: center;">${error ? `❌ ${error}` : '❌ 导出失败'}</span>`;
+            btn.style.background = '#F24822';
+            btn.style.border = '1px solid #F24822';
+            btn.style.color = '#fff';
+            setTimeout(() => { state.isCompressing = false; render(); }, 2500);
+          } else {
+            state.isCompressing = false; render();
+          }
+          return;
+        }
+
+        try {
+          const countEl = document.getElementById('btn-count-text');
+          if (countEl) countEl.innerText = `${items.length}/${items.length}`;
+          const fillEl = document.getElementById('btn-progress-fill');
+          if (fillEl) fillEl.style.width = '100%';
+          const statusEl = document.getElementById('btn-status-text');
+          if (statusEl) statusEl.innerText = '正在启动下载...';
+
+          const zip = new JSZip();
+          const folder = zip.folder(zipName || 'VolcBox_Export');
+          for (let i = 0; i < items.length; i++) {
+            folder.file(`${items[i].name}.${items[i].format.toLowerCase()}`, items[i].bytes);
+          }
+          
+          if (items.length === 1 && !zipName) {
+            const ext = items[0].format.toLowerCase();
+            const blob = new Blob([items[0].bytes], { type: items[0].format === 'JPG' ? 'image/jpeg' : 'image/png' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${items[0].name}.${ext}`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          } else {
+            const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${zipName || 'VolcBox_Export'}.zip`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          }
+          
+          if (btn) {
+            btn.innerHTML = `<span style="width: 100%; text-align: center;">✅ 导出完成 (共 ${items.length} 个)</span>`;
+            btn.style.background = '#1DA15F';
+            btn.style.border = '1px solid #1DA15F';
+            btn.style.color = '#fff';
+            setTimeout(() => { state.isCompressing = false; render(); refreshCompressQuotas(false); }, 2000);
+          } else {
+            state.isCompressing = false; render(); refreshCompressQuotas(false);
+          }
+        } catch (err) {
+          console.error(err);
+          if (btn) {
+            btn.innerHTML = `<span style="width: 100%; text-align: center;">❌ 打包失败</span>`;
+            btn.style.background = '#F24822';
+            btn.style.border = '1px solid #F24822';
+            btn.style.color = '#fff';
+            setTimeout(() => { state.isCompressing = false; render(); }, 2500);
+          } else {
+            state.isCompressing = false; render();
+          }
+        }
+      },
+
+      async 'crop/do-trim-images'(payload) {
+        const { images } = payload || {};
+        if (!images || images.length === 0) return;
+
+        for (const item of images) {
+          const { nodeId, bytes, type } = item;
+          const blob = new Blob([bytes], { type: 'image/png' });
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+
+          await new Promise((resolve) => {
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+
+              const imgData = ctx.getImageData(0, 0, img.width, img.height);
+              const data = imgData.data;
+
+              let minX = img.width, minY = img.height, maxX = -1, maxY = -1;
+              for (let y = 0; y < img.height; y++) {
+                for (let x = 0; x < img.width; x++) {
+                  const alpha = data[(y * img.width + x) * 4 + 3];
+                  if (alpha > 5) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                  }
+                }
+              }
+
+              if (minX <= maxX && minY <= maxY && (minX > 0 || minY > 0 || maxX < img.width - 1 || maxY < img.height - 1)) {
+                const cropW = maxX - minX + 1;
+                const cropH = maxY - minY + 1;
+                const cropCanvas = document.createElement('canvas');
+                cropCanvas.width = cropW;
+                cropCanvas.height = cropH;
+                const cropCtx = cropCanvas.getContext('2d');
+                cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+                cropCanvas.toBlob(async (cropBlob) => {
+                  const newBytes = new Uint8Array(await cropBlob.arrayBuffer());
+                  parent.postMessage({
+                    pluginMessage: {
+                      type: 'crop/apply-trimmed-image',
+                      payload: {
+                        nodeId,
+                        newBytes,
+                        origW: img.width,
+                        origH: img.height,
+                        cropX: minX,
+                        cropY: minY,
+                        cropW,
+                        cropH,
+                        type
+                      }
+                    }
+                  }, '*');
+                  URL.revokeObjectURL(url);
+                  resolve();
+                }, 'image/png');
+              } else {
+                parent.postMessage({
+                  pluginMessage: {
+                    type: 'toast',
+                    payload: '该图片周边没有多余透明边缘，无需裁切'
+                  }
+                }, '*');
+                URL.revokeObjectURL(url);
+                resolve();
+              }
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(url);
+              resolve();
+            };
+            img.src = url;
+          });
+        }
+      },
+
+      async 'export/completed-artboards'(payload) {
+        const { items, zipName } = payload || {};
+        if (!items || items.length === 0) return;
+
+        try {
+          if (items.length === 1) {
+            const blob = new Blob([new Uint8Array(items[0].bytes)], { type: 'image/png' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${items[0].name}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          } else {
+            const zip = new JSZip();
+            for (const item of items) {
+              zip.file(`${item.name}.png`, item.bytes);
+            }
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const url = window.URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${zipName || '所选画板切图'}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }
+        } catch (e) {
+          console.error('[Download Artboards Error]', e);
+        }
+      },
+
+      async 'artboards/do-local-image-clipboard'(payload) {
+        const { rows, images, withTitles } = payload || {};
+        const imageRows = rows || (images ? [images] : []);
+        if (!imageRows || imageRows.length === 0) return;
+
+        try {
+          const loadedRows = await Promise.all(
+            imageRows.map(row => Promise.all(
+              row.map(item => new Promise((resolve, reject) => {
+                const blob = new Blob([item.bytes], { type: 'image/png' });
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = () => resolve({ img, name: item.name, width: item.width, height: item.height, url });
+                img.onerror = reject;
+                img.src = url;
+              }))
+            ))
+          );
+
+          const titleHeight = withTitles ? 40 : 0;
+          const gap = 36;
+          const pad = 40;
+
+          const rowWidths = loadedRows.map(row => {
+            const totalImgsW = row.reduce((sum, item) => sum + item.width, 0);
+            return totalImgsW + (row.length - 1) * gap;
+          });
+          const rowHeights = loadedRows.map(row => {
+            const maxH = Math.max(...row.map(item => item.height));
+            return maxH + titleHeight;
+          });
+
+          const maxRowWidth = Math.max(...rowWidths);
+          const totalWidth = maxRowWidth + pad * 2;
+          const totalHeight = rowHeights.reduce((sum, h) => sum + h, 0) + (loadedRows.length - 1) * gap + pad * 2;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = totalWidth;
+          canvas.height = totalHeight;
+          const ctx = canvas.getContext('2d');
+
+          ctx.fillStyle = '#F4F4F5';
+          ctx.fillRect(0, 0, totalWidth, totalHeight);
+
+          let curY = pad;
+          for (let r = 0; r < loadedRows.length; r++) {
+            const row = loadedRows[r];
+            let curX = pad;
+
+            for (let i = 0; i < row.length; i++) {
+              const imgItem = row[i];
+              const x = curX;
+              const y = curY;
+
+              if (withTitles) {
+                ctx.fillStyle = '#18181B';
+                ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(imgItem.name, x, y + 16);
+              }
+
+              const imgY = y + titleHeight;
+
+              ctx.save();
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
+              ctx.shadowBlur = 16;
+              ctx.shadowOffsetY = 6;
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(x, imgY, imgItem.width, imgItem.height);
+              ctx.restore();
+
+              ctx.drawImage(imgItem.img, x, imgY, imgItem.width, imgItem.height);
+
+              ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(x, imgY, imgItem.width, imgItem.height);
+
+              curX += imgItem.width + gap;
+            }
+
+            curY += rowHeights[r] + gap;
+          }
+
+          loadedRows.flat().forEach(i => URL.revokeObjectURL(i.url));
+
+          const dataUrl = canvas.toDataURL('image/png');
+
+          const response = await fetch('http://127.0.0.1:3055/api/clipboard/write-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: dataUrl })
+          });
+
+          if (response.ok) {
+            parent.postMessage({ pluginMessage: { type: 'toast', payload: '📋 拼图大图已直接复制到剪贴板，去微信按 ⌘+V 即可粘贴发送！' } }, '*');
+          } else {
+            throw new Error('Local helper error');
+          }
+        } catch (err) {
+          console.error('[Local Collage Error]', err);
+          parent.postMessage({ pluginMessage: { type: 'toast', payload: '复制失败，请确认本地服务已启动', error: true } }, '*');
+        }
+      },
+
+      async 'artboards/do-local-files-clipboard'(payload) {
+        const { files } = payload || {};
+        if (!files || files.length === 0) return;
+
+        try {
+          const filesPayload = await Promise.all(
+            files.map(f => new Promise((resolve) => {
+              const blob = new Blob([new Uint8Array(f.bytes)], { type: 'image/png' });
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                resolve({
+                  name: f.name,
+                  base64: reader.result
+                });
+              };
+              reader.readAsDataURL(blob);
+            }))
+          );
+
+          const response = await fetch('http://127.0.0.1:3055/api/clipboard/write-files', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ files: filesPayload })
+          });
+
+          if (response.ok) {
+            parent.postMessage({
+              pluginMessage: {
+                type: 'toast',
+                payload: `📋 ${files.length} 张单图已直接复制到剪贴板，去微信按 ⌘+V 可一次性发出 ${files.length} 条消息！`
+              }
+            }, '*');
+          } else {
+            throw new Error('Local helper error');
+          }
+        } catch (err) {
+          console.error('[Local Files Error]', err);
+          parent.postMessage({ pluginMessage: { type: 'toast', payload: '多图复制失败，请确认本地服务已启动', error: true } }, '*');
+        }
+      },
+
+      'account/sync-status-updated'(payload) {
+        const { success, settings, cloudSync, message, error } = payload || {};
+        if (success) {
+          if (settings) {
+            state.settings = settings;
+            const tr = state.settings.translation;
+            if (tr?.pinnedLanguageCodes?.length > 0) state.pinnedCodes = [...tr.pinnedLanguageCodes];
+            if (tr?.targetLanguage) state.targetLanguage = tr.targetLanguage;
+            if (tr?.translateMode) state.translateMode = tr.translateMode;
+            if (typeof tr?.protectText === 'boolean') state.protectText = tr.protectText;
+            if (typeof tr?.preserveRichText === 'boolean') state.preserveRichText = tr.preserveRichText;
+            const fl = state.settings.fill;
+            if (fl?.fillLines?.length > 0) state.fillLines = [...fl.fillLines];
+            if (fl?.fillPrefix !== undefined) state.fillPrefix = fl.fillPrefix;
+            if (fl?.fillSuffix !== undefined) state.fillSuffix = fl.fillSuffix;
+          } else if (cloudSync) {
+            if (!state.settings) state.settings = {};
+            state.settings.cloudSync = cloudSync;
+          }
+          render();
+        } else {
+          render();
+        }
+      },
+
+      'task/completed'() {
+        state.isTranslating = false;
+        render();
+      },
+
+      'task/failed'() {
+        state.isTranslating = false;
+        render();
+      }
+    };
+
+    window.onmessage = async (event) => {
+      const msg = event.data?.pluginMessage;
+      if (!msg || !msg.type) return;
+      const handler = MessageHandlers[msg.type];
+      if (typeof handler === 'function') {
+        try {
+          await handler(msg.payload, msg.requestId);
+        } catch (err) {
+          console.error(`[Message Router Error] ${msg.type}:`, err);
+        }
+      }
+    };
+
+    // Global click listener to close modals when clicking backdrop
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
+        const lp = document.getElementById('lang-picker-modal');
+        if (lp && lp.style.display !== 'none') {
+          closeLangPicker();
+        }
+        if (state.editingScheme) {
+          state.editingScheme = null;
+          render();
+        }
+        if (state.editingPreset) {
+          state.editingPreset = null;
+          render();
+        }
+      }
+      const menu = document.getElementById('preset-context-menu');
+      if (menu && menu.style.display !== 'none' && !menu.contains(e.target)) {
+        menu.style.display = 'none';
+      }
+    });
+
+    // Initial render & local service check
+    render();
+    checkLocalService();
+    setInterval(checkLocalService, 3000);
+    parent.postMessage({ pluginMessage: { type: 'selection/request', payload: {} } }, '*');
+  </script>
+</body>
+</html>
