@@ -751,7 +751,144 @@
       letter-spacing: 0.05em;
       color: #B5AEA1;
       text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
+
+    /* --- THEME SWITCHER (Lightweight) --- */
+    .theme-switcher {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 999px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .theme-switch-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 18px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: #9E9689;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .theme-switch-btn:hover {
+      color: var(--text-main);
+    }
+    .theme-switch-btn.active {
+      background: #FFFFFF;
+      color: #FF5500;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    /* =====================================================================
+       VOLCBOX NEXT - DARK MODE SYSTEM (Official Website Theme)
+       ===================================================================== */
+    body.theme-dark {
+      --bg-chassis: #090A0D;
+      --bg-deck: #111318;
+      --bg-surface: #171922;
+      --bg-hover: #1F222E;
+      --bg-active: #272B3A;
+      --bg-muted: #14161E;
+      
+      --border-chassis: rgba(255, 255, 255, 0.08);
+      --border-deck: rgba(255, 255, 255, 0.1);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-focus: #FF5500;
+      
+      --text-main: #F4F4F6;
+      --text-sub: #A2A6B4;
+      --text-muted: #6B7082;
+      --text-inverse: #090A0D;
+      
+      --accent-red: #FF5500;
+      --accent-red-hover: #FF661A;
+      --accent-green: #00D26A;
+      --accent-blue: #0088FF;
+      --accent-amber: #FFAA55;
+      
+      --shadow-key: 0 2px 0 rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
+      --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-deck: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    body.theme-dark .tactile-key {
+      background-color: #14161E;
+      border-color: rgba(255, 255, 255, 0.08);
+      color: var(--text-sub);
+    }
+    body.theme-dark .tactile-key:hover:not(.active) {
+      background-color: #1C1F2A;
+      border-color: rgba(255, 255, 255, 0.16);
+      color: var(--text-main);
+    }
+    body.theme-dark .tactile-key.active {
+      background-color: #1E222E !important;
+      border-color: rgba(255, 85, 0, 0.45) !important;
+      color: #FFAA55 !important;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 85, 0, 0.25) !important;
+    }
+    body.theme-dark .led-dot {
+      background-color: #383D4E;
+    }
+    body.theme-dark .tactile-key.active .led-dot {
+      background-color: var(--accent-red) !important;
+      box-shadow: 0 0 6px rgba(255, 85, 0, 0.9);
+    }
+    body.theme-dark .bottom-brand {
+      color: #636878;
+      text-shadow: none;
+    }
+    body.theme-dark .theme-switcher {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    body.theme-dark .theme-switch-btn {
+      color: #636878;
+    }
+    body.theme-dark .theme-switch-btn:hover {
+      color: #F4F4F6;
+    }
+    body.theme-dark .theme-switch-btn.active {
+      background: #252836;
+      color: #FFAA55;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    }
+    body.theme-dark .input-box,
+    body.theme-dark textarea,
+    body.theme-dark select {
+      background-color: #13151D !important;
+      color: var(--text-main) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    body.theme-dark .tile-card,
+    body.theme-dark .card-item,
+    body.theme-dark .preset-tab-btn,
+    body.theme-dark .sub-tab-btn {
+      background-color: #151720;
+      border-color: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+    body.theme-dark .modal-content {
+      background-color: #171922;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+    body.theme-dark #preset-context-menu {
+      background: #171922 !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      color: var(--text-main) !important;
+    }
+
     /* --- MODAL --- */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -868,8 +1005,15 @@
 
     <!-- 3. BOTTOM CHASSIS -->
     <footer class="bottom-chassis" id="bottom-bar">
-      <div class="bottom-brand">VolcBox</div>
-      <div class="bottom-brand"><span id="plugin-version">v1.0.0</span></div>
+      <div class="theme-switcher">
+        <button class="theme-switch-btn active" id="theme-btn-light" onclick="setTheme('light')" title="浅色模式">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        </button>
+        <button class="theme-switch-btn" id="theme-btn-dark" onclick="setTheme('dark')" title="深色模式">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+      </div>
+      <div class="bottom-brand">VolcBox <span id="plugin-version">v1.0.0</span></div>
     </footer>
   </div>
 
@@ -960,6 +1104,7 @@
     // APP STATE & CORE LOGIC
     // =====================================================================
     const state = {
+      theme: 'light',
       activeTab: 'translate',
       targetLanguage: 'en',
       translateMode: 'text',
@@ -980,6 +1125,7 @@
       selection: { totalSelected: 0, textNodeCount: 0, colorLayerCount: 0 },
       hasLocalService: false,
       settings: {
+        theme: 'light',
         activeProviderId: 'free-fast',
         customLlm: {
           preset: 'deepseek',
@@ -1005,11 +1151,30 @@
       },
     };
 
+    window.setTheme = function(mode) {
+      state.theme = mode;
+      applyTheme(mode);
+      savePluginState();
+    };
+
+    function applyTheme(mode) {
+      if (mode === 'dark') {
+        document.body.classList.add('theme-dark');
+        document.getElementById('theme-btn-dark')?.classList.add('active');
+        document.getElementById('theme-btn-light')?.classList.remove('active');
+      } else {
+        document.body.classList.remove('theme-dark');
+        document.getElementById('theme-btn-light')?.classList.add('active');
+        document.getElementById('theme-btn-dark')?.classList.remove('active');
+      }
+    }
+
     function savePluginState() {
       if (!state.settings) state.settings = {};
       if (!state.settings.translation) state.settings.translation = {};
       if (!state.settings.fill) state.settings.fill = {};
 
+      state.settings.theme = state.theme;
       state.settings.translation.pinnedLanguageCodes = state.pinnedCodes;
       state.settings.translation.targetLanguage = state.targetLanguage;
       state.settings.translation.translateMode = state.translateMode;
@@ -1024,6 +1189,7 @@
         pluginMessage: {
           type: 'settings/save',
           payload: {
+            theme: state.theme,
             activeProviderId: state.settings.activeProviderId,
             customLlm: state.settings.customLlm,
             providerCredentials: state.settings.providerCredentials,
@@ -3208,6 +3374,10 @@ echo "=========================================="
           if (fl?.fillLines?.length > 0) state.fillLines = [...fl.fillLines];
           if (fl?.fillPrefix !== undefined) state.fillPrefix = fl.fillPrefix;
           if (fl?.fillSuffix !== undefined) state.fillSuffix = fl.fillSuffix;
+          if (state.settings.theme) {
+            state.theme = state.settings.theme;
+            applyTheme(state.theme);
+          }
           if (state.settings.compression?.tinifyKeys?.length > 0) {
             setTimeout(() => refreshCompressQuotas(false), 200);
           }

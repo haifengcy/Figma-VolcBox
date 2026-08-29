@@ -110,6 +110,7 @@ const DEFAULT_SETTINGS = {
     lastSyncTime: null,
     autoSync: true,
   },
+  theme: 'light',
 };
 
 const DEFAULT_STYLE_LIBRARY = {

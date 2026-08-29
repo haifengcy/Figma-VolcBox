@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VolcBox Next — 全能出海与设计提效 Figma 插件官方主页</title>
+  <meta name="description" content="专为出海设计师与产品研发打造的下一代全能 Figma 提效工具箱：AI 智能翻译、真实数据批量填充、TinyPNG 多账号池极速压缩、色彩调校与跨端云同步。">
+  <meta name="keywords" content="Figma, Figma Plugin, VolcBox, AI翻译, TinyPNG压缩, 出海设计, 数据模拟, Figma插件">
+  
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="VolcBox Next — 全能出海与设计提效 Figma 插件">
+  <meta property="og:description" content="AI 智能翻译 · 真实数据批量模拟 · TinyPNG 多池极速压缩 · 全局调色 · 跨端云同步">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌋</text></svg>">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Ambient Light Orbs -->
+  <div class="ambient-glow">
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+    <div class="glow-orb-3"></div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="#" class="logo-link">
+        <span style="font-size: 1.4rem;">🌋</span>
+        <span>VolcBox <span class="logo-badge">Next</span></span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#features" class="nav-link">功能特性</a></li>
+          <li><a href="#showcase" class="nav-link">核心亮点</a></li>
+          <li><a href="#install" class="nav-link">安装教程</a></li>
+          <li><a href="#faq" class="nav-link">常见问题</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://github.com/haifengcy/Figma-VolcBox" target="_blank" class="btn btn-secondary" title="前往 GitHub 仓库">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>Star</span>
+        </a>
+        <a href="#install" class="btn btn-primary">
+          <span>立即安装</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-pill">
+        <span class="pulse-dot"></span>
+        <span>v1.0.0 正式版已发布 · 开源且完全免费</span>
+      </div>
+
+      <h1 class="hero-title">
+        专为出海与提效打造的<br>
+        <span class="gradient-text">下一代 Figma 全能工具箱</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        AI 智能多语言翻译 · 真实数据批量模拟 · TinyPNG 多账号池极速压缩 · 全局调色 · 跨端云同步，让设计与本地化流程快如闪电。
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="https://github.com/haifengcy/Figma-VolcBox/releases/latest" target="_blank" class="btn btn-primary btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          <span>下载插件安装包 (v1.0.0)</span>
+        </a>
+        <button onclick="copyCloneCommand()" class="btn btn-secondary btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span>复制 Git 克隆命令</span>
+        </button>
+      </div>
+
+      <!-- 3D Interactive Simulated Figma Plugin -->
+      <div class="hero-mockup-wrapper">
+        <div class="hero-mockup-container">
+          <div class="window-header">
+            <div class="window-controls">
+              <span class="window-dot dot-red"></span>
+              <span class="window-dot dot-yellow"></span>
+              <span class="window-dot dot-green"></span>
+            </div>
+            <div class="window-title">VolcBox Next — Plugin Interface Simulator</div>
+            <div style="font-size: 0.75rem; color: #666; font-family: var(--font-mono);">v1.0.0</div>
+          </div>
+
+          <div class="mockup-body">
+            <!-- Sidebar Tabs -->
+            <div class="mockup-sidebar">
+              <button class="mockup-tab-btn active" onclick="switchMockupTab('translate', this)">
+                <span>🌐</span> <span>智能多语言翻译</span>
+              </button>
+              <button class="mockup-tab-btn" onclick="switchMockupTab('fill', this)">
+                <span>📝</span> <span>智能数据填充</span>
+              </button>
+              <button class="mockup-tab-btn" onclick="switchMockupTab('compress', this)">
+                <span>🖼️</span> <span>TinyPNG 极速压缩</span>
+              </button>
+              <button class="mockup-tab-btn" onclick="switchMockupTab('color', this)">
+                <span>🎨</span> <span>色彩调节与样式</span>
+              </button>
+              <button class="mockup-tab-btn" onclick="switchMockupTab('tools', this)">
+                <span>🛠️</span> <span>辅助效率工具</span>
+              </button>
+              <button class="mockup-tab-btn" onclick="switchMockupTab('sync', this)">
+                <span>☁️</span> <span>云端配置跨端同步</span>
+              </button>
+            </div>
+
+            <!-- Main Tab Dynamic Content -->
+            <div class="mockup-content" id="mockup-content-view">
+              <!-- Content rendered via JavaScript dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features Grid -->
+  <section id="features" style="padding: 100px 0 60px;">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Powerful Features</span>
+        <h2 class="section-title">重构每一个设计高频环节</h2>
+        <p class="section-desc">告别单点小插件碎片化，在一个极速现代的统一界面中搞定全部出海与研发协同需求。</p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Card 1 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          </div>
+          <h3 class="feature-title">🌐 AI 智能多语言翻译</h3>
+          <p class="feature-description">
+            内置全球 100+ 语言毫秒级加速通道，支持 DeepSeek / OpenAI 大模型接入；翻译后完美保留段落内的加粗、颜色与字号样式，支持画板矩阵自动排布扩展。
+          </p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          </div>
+          <h3 class="feature-title">📝 真实数据批量模拟</h3>
+          <p class="feature-description">
+            预设丰富的出海中英文姓名、全球主要城市、真实电商价格与数字结构；支持用户直接粘贴自定义词库，一键对选中文本进行顺序或随机替换。
+          </p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          </div>
+          <h3 class="feature-title">🖼️ TinyPNG 多账号池极速压缩</h3>
+          <p class="feature-description">
+            同时绑定多个 TinyPNG Key 自动轮询调度，突破单 Key 500 次限制；6 线程并发极速导出，按钮内嵌数量进度条，实时刷新官方剩余额度。
+          </p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a7 7 0 0 0 7 7c0 7-7 13-7 13s-7-6-7-13a7 7 0 0 0 7-7z"></path></svg>
+          </div>
+          <h3 class="feature-title">🎨 色彩调节与色板归档</h3>
+          <p class="feature-description">
+            无需解组或逐个图层微调，全局精准调节所选画板的 HSL 色相、饱和度与明度，支持一键将画板中的精美配色保存为本地调色板。
+          </p>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          </div>
+          <h3 class="feature-title">🛠️ 设计师效率工具箱</h3>
+          <p class="feature-description">
+            画布画板一键拼图直出、文本行高批量 Auto / 固定像素互转、PNG 图片四周透明留白智能无损裁切，消除日常枯燥重复劳动。
+          </p>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+          </div>
+          <h3 class="feature-title">☁️ 跨设备云端配置自动同步</h3>
+          <p class="feature-description">
+            专属 License Key 机制，换电脑或重装系统无需重新配置 API Key 与词库偏好；支持静默增量后台同步，随时随地无缝衔接。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Showcase & Comparison Section -->
+  <section id="showcase" class="comparison-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Quality & Precision</span>
+        <h2 class="section-title">细节见真章：富文本样式无损还原</h2>
+        <p class="section-desc">传统翻译插件会破坏段落内的高亮和局部样式，VolcBox 做到像素级完美保留。</p>
+      </div>
+
+      <div class="comparison-box">
+        <div>
+          <div class="compare-col-header">
+            <strong>❌ 普通翻译插件</strong>
+            <span class="compare-badge badge-bad">样式全部丢失</span>
+          </div>
+          <div class="compare-card" style="color: #999;">
+            "Exclusive Member Benefit: Enjoy up to 50% discount on all new product launches this Friday!"
+            <div style="font-size: 0.78rem; color: #ff6666; margin-top: 10px;">⚠️ 加粗高亮丢失、金额强调丢失、变成单一样式</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="compare-col-header">
+            <strong>✨ VolcBox Next AI 翻译</strong>
+            <span class="compare-badge badge-good">局部样式 100% 还原</span>
+          </div>
+          <div class="compare-card">
+            <span style="color: #FFAA55; font-weight: 700;">Exclusive Member Benefit:</span> Enjoy up to <span style="color: #FF5500; font-weight: 800; font-size: 1.15em;">50% discount</span> on all new product launches this <span style="text-decoration: underline;">Friday</span>!
+            <div style="font-size: 0.78rem; color: #00D26A; margin-top: 10px;">✅ 局部高亮色、字号阶梯、加粗与下划线完美保留</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Installation Steps -->
+  <section id="install" class="install-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Quick Start</span>
+        <h2 class="section-title">极速 3 步，在 Figma 中开启体验</h2>
+        <p class="section-desc">无需复杂安装配置，开箱即用。</p>
+      </div>
+
+      <div class="steps-wrapper">
+        <div class="step-card">
+          <div class="step-num">01</div>
+          <h3 class="step-title">下载插件源码包</h3>
+          <p class="step-text">从 GitHub Releases 下载最新的 `VolcBox_v1.0.0.zip` 压缩包并解压到本地文件夹，或使用 git clone 命令克隆仓库。</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">02</div>
+          <h3 class="step-title">在 Figma 中导入</h3>
+          <p class="step-text">打开 Figma 任意文件，点击菜单栏 `Plugins (插件)` ➔ `Development (开发)` ➔ `Import plugin from manifest...`，选中解压出的 `manifest.json`。</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">03</div>
+          <h3 class="step-title">即刻享受极速提效</h3>
+          <p class="step-text">选中画板或文字，点击运行 VolcBox Next，开启 AI 智能多语言翻译、批量填充与 TinyPNG 极速压缩！</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="faq-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Frequently Asked Questions</span>
+        <h2 class="section-title">常见问题解答</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item active">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>VolcBox Next 是否完全免费？</span>
+            <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="faq-answer">
+            是的！本项目基于 MIT 协议完全开源且免费使用。基础多语言翻译通道开箱即用，支持接入你自己的 DeepSeek / OpenAI API Key，无任何中间额外收费。
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>如何获取 TinyPNG API Key 并配置多账号池？</span>
+            <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="faq-answer">
+            访问 tinypng.com/developers 免费输入邮箱即可获取 API Key（每个账号每月赠送 500 张无损压缩额度）。在 VolcBox 中你可以添加多个 Key，插件会自动轮询调度，轻松实现每月数千张免费图片压缩。
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>更换新电脑后，如何快速同步我的所有配置？</span>
+            <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="faq-answer">
+            在插件「设置」页面点击一键生成专属同步密钥（例如 `VB-XXXX-XXXX`）。在新电脑安装插件后，只需在设置页面输入你的密钥并点击「拉取云端配置」，所有 API Key、词库与偏好将瞬间全部恢复！
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="logo-link">
+            <span style="font-size: 1.3rem;">🌋</span>
+            <span>VolcBox Next</span>
+          </div>
+          <p>专为出海设计师与产品研发团队打造的下一代全能 Figma 提效工具箱。</p>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-col">
+            <h4>产品导航</h4>
+            <ul>
+              <li><a href="#features">功能特性</a></li>
+              <li><a href="#install">安装教程</a></li>
+              <li><a href="#faq">常见问题</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>开源与社区</h4>
+            <ul>
+              <li><a href="https://github.com/haifengcy/Figma-VolcBox" target="_blank">GitHub 仓库</a></li>
+              <li><a href="https://github.com/haifengcy/Figma-VolcBox/releases" target="_blank">更新日志</a></li>
+              <li><a href="https://github.com/haifengcy/Figma-VolcBox/issues" target="_blank">提交反馈 / Issue</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 VolcBox Next. Released under the MIT License.</div>
+        <div>Crafted with passion for Global Designers</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast">📋 命令已成功复制到剪贴板！</div>
+
+  <!-- Scripts -->
+  <script src="main.js"></script>
+</body>
+</html>
