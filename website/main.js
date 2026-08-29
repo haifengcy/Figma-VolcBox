@@ -1,212 +1,350 @@
 // =====================================================================
-// VolcBox Next Official Website - Interactive Scripts
+// VolcBox Official Landing Page - Interactive Simulator Scripts
 // =====================================================================
 
+let currentTab = 'translate';
+let currentTheme = 'dark';
+let currentLang = 'en';
+let currentFillPreset = 0;
+
+const FILL_PRESETS = [
+  { name: '✨ 数据模拟', text: 'Emily Watson\nLiam Vance\nSophia Reynolds\nLucas Chen\nOlivia Martinez' },
+  { name: '欧美姓名', text: 'Alexander Wright\nCharlotte Evans\nBenjamin Scott\nAmelia Brooks\nJames Bennett' },
+  { name: '全球城市', text: 'San Francisco, US\nTokyo, JP\nLondon, UK\nSingapore, SG\nBerlin, DE' },
+  { name: '电商价格', text: '$29.99\n$49.00\n$128.50\n$19.90\n$89.00' }
+];
+
 const MockupViews = {
-  translate: `
-    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: space-between;">
-      <div>
-        <div style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 8px;">目标出海语言 (支持 100+ 语言)</div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <span style="background: rgba(255, 85, 0, 0.15); border: 1px solid rgba(255, 85, 0, 0.4); color: #FFAA55; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">🇺🇸 英语 (English)</span>
-          <span style="background: #1C1E26; border: 1px solid #2C2F3C; color: #BBB; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem;">🇯🇵 日语 (日本語)</span>
-          <span style="background: #1C1E26; border: 1px solid #2C2F3C; color: #BBB; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem;">🇰🇷 韩语 (한국어)</span>
-          <span style="background: #1C1E26; border: 1px solid #2C2F3C; color: #BBB; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem;">🇪🇸 西班牙语</span>
-          <span style="background: #1C1E26; border: 1px solid #2C2F3C; color: #BBB; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem;">🇫🇷 法语</span>
-        </div>
+  translate() {
+    const langs = [
+      { code: 'en', flag: '🇺🇸', name: '英语', en: 'English' },
+      { code: 'ja', flag: '🇯🇵', name: '日语', en: 'Japanese' },
+      { code: 'ko', flag: '🇰🇷', name: '韩语', en: 'Korean' },
+      { code: 'es', flag: '🇪🇸', name: '西语', en: 'Spanish' },
+      { code: 'fr', flag: '🇫🇷', name: '法语', en: 'French' },
+    ];
+
+    return `
+      <div class="mockup-segmented-control">
+        <button class="mockup-segment-btn active">原地文本翻译</button>
+        <button class="mockup-segment-btn">画板方案批量翻译</button>
       </div>
 
-      <div style="background: #0E1015; border: 1px solid #222530; border-radius: 10px; padding: 16px;">
-        <div style="font-size: 0.75rem; color: #666; font-weight: 600; margin-bottom: 6px;">✨ 富文本无损保留实时预览</div>
-        <div style="font-size: 0.95rem; line-height: 1.6;">
-          <span style="color: #FFAA55; font-weight: 700;">Summer Flash Sale:</span> Enjoy up to <span style="color: #FF5500; font-weight: 800; font-size: 1.15em;">70% OFF</span> on all new design components!
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid #1F222D; padding-top: 14px;">
-        <div style="font-size: 0.82rem; color: #777;">已连接: <strong style="color: #00D26A;">DeepSeek V3 (高速)</strong></div>
-        <button style="background: linear-gradient(135deg, #FF6600, #FF4400); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 85, 0, 0.35);">
-          🚀 一键批量翻译画板
-        </button>
-      </div>
-    </div>
-  `,
-
-  fill: `
-    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: space-between;">
-      <div>
-        <div style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 8px;">出海高频真实数据集</div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <span style="background: rgba(255, 85, 0, 0.15); border: 1px solid rgba(255, 85, 0, 0.4); color: #FFAA55; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">👤 欧美真实姓名</span>
-          <span style="background: #1C1E26; border: 1px solid #2C2F3C; color: #BBB; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem;">🏙️ 全球主要城市</span>
-          <span style="background: #1C1E26; border: 1px solid #2C2F3C; color: #BBB; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem;">💵 电商多币种价格</span>
-          <span style="background: #1C1E26; border: 1px solid #2C2F3C; color: #BBB; padding: 5px 12px; border-radius: 6px; font-size: 0.85rem;">✉️ 用户企业邮箱</span>
-        </div>
-      </div>
-
-      <div style="background: #0E1015; border: 1px solid #222530; border-radius: 10px; padding: 14px;">
-        <div style="font-size: 0.75rem; color: #666; font-weight: 600; margin-bottom: 8px;">自定义词库批量导入</div>
-        <textarea readonly style="width: 100%; height: 75px; background: transparent; border: none; color: #CCC; font-family: var(--font-mono); font-size: 0.82rem; resize: none; outline: none; line-height: 1.5;">Emily Watson, Chief Design Officer
-Liam Vance, Senior Product Lead
-Sophia Reynolds, Growth Specialist</textarea>
-      </div>
-
-      <div style="display: flex; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid #1F222D; padding-top: 14px;">
-        <div style="font-size: 0.82rem; color: #777;">模式: <strong>顺序排列填充</strong></div>
-        <button style="background: linear-gradient(135deg, #FF6600, #FF4400); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 85, 0, 0.35);">
-          ✨ 智能替换选中文本
-        </button>
-      </div>
-    </div>
-  `,
-
-  compress: `
-    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: space-between;">
-      <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <div style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase;">TinyPNG 账号池负载均衡</div>
-          <span style="font-size: 0.75rem; color: #00D26A; font-weight: 600;">🟢 2 个 Key 在线 (剩余 740/1000 次)</span>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <div style="background: #171A23; border: 1px solid #272B3A; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; font-size: 0.8rem;">
-            <span style="font-family: var(--font-mono); color: #DDD;">Key #1: 5c98****3f1a</span>
-            <span style="color: #FFAA55;">剩余 380 / 500 次</span>
-          </div>
-          <div style="background: #171A23; border: 1px solid #272B3A; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; font-size: 0.8rem;">
-            <span style="font-family: var(--font-mono); color: #DDD;">Key #2: 9b21****88e4</span>
-            <span style="color: #FFAA55;">剩余 360 / 500 次</span>
-          </div>
-        </div>
-      </div>
-
-      <div style="background: #0E1015; border: 1px solid #222530; border-radius: 10px; padding: 14px;">
-        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 8px;">
-          <span style="color: #999;">导出倍率: <strong style="color: #FFF;">@2x (Retina)</strong></span>
-          <span style="color: #999;">格式: <strong style="color: #FFF;">PNG (无损)</strong></span>
-        </div>
-        <div style="background: #151822; padding: 10px; border-radius: 6px; font-size: 0.8rem; color: #00D26A; display: flex; align-items: center; gap: 6px;">
-          <span>⚡️ 6 线程并发加速引擎已就绪</span>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid #1F222D; padding-top: 14px;">
-        <div style="font-size: 0.82rem; color: #777;">平均压缩率: <strong style="color: #00D26A;">-78.4%</strong></div>
-        <button style="background: linear-gradient(135deg, #FF6600, #FF4400); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 85, 0, 0.35); display: flex; align-items: center; gap: 6px;">
-          <span style="display: inline-block; width: 8px; height: 8px; background: #FFF; border-radius: 50%; animation: pulse-ring 1.5s infinite;"></span>
-          <span>极速压缩并导出: 3/10 · 1.4s</span>
-        </button>
-      </div>
-    </div>
-  `,
-
-  color: `
-    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: space-between;">
-      <div>
-        <div style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 12px;">画板全局 HSL 精准微调</div>
-        
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #AAA; margin-bottom: 4px;">
-              <span>色相 (Hue)</span>
-              <span style="color: #FFAA55; font-family: var(--font-mono);">+15°</span>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px 14px 8px 14px;">
+        ${langs.map(l => `
+          <div onclick="selectMockupLang('${l.code}')" style="background: ${currentLang === l.code ? 'rgba(255,85,0,0.12)' : 'var(--bg-surface)'}; border: 1px solid ${currentLang === l.code ? 'var(--accent-red)' : 'var(--border-deck)'}; border-radius: 6px; padding: 6px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; transition: all 0.15s;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="font-size: 13px;">${l.flag}</span>
+              <span style="font-size: 11px; font-weight: 600; color: ${currentLang === l.code ? 'var(--accent-red)' : 'var(--text-main)'};">${l.name}</span>
             </div>
-            <input type="range" min="-180" max="180" value="15" style="width: 100%; accent-color: #FF5500;">
+            <span style="font-size: 9.5px; color: var(--text-muted);">${l.en}</span>
           </div>
-          <div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #AAA; margin-bottom: 4px;">
-              <span>饱和度 (Saturation)</span>
-              <span style="color: #FFAA55; font-family: var(--font-mono);">110%</span>
+        `).join('')}
+        <div style="background: var(--bg-surface); border: 1px dashed var(--border-deck); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-muted); cursor: pointer;">
+          ＋
+        </div>
+      </div>
+
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row">
+          <span style="font-size: 11.5px; font-weight: 500;">保留富文本分段样式</span>
+          <div style="width: 36px; height: 20px; border-radius: 10px; background: var(--accent-red); position: relative; cursor: pointer;">
+            <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; right: 2px; top: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mockup-action-bar">
+        <button class="mockup-btn-primary" style="flex: 1;">开始文本翻译 (4)</button>
+        <button class="mockup-btn-secondary">撤回</button>
+      </div>
+    `;
+  },
+
+  fill() {
+    const preset = FILL_PRESETS[currentFillPreset] || FILL_PRESETS[0];
+    const lines = preset.text.split('\n');
+
+    return `
+      <div style="display: flex; flex: 1; gap: 8px; padding: 0 14px; min-height: 280px;">
+        <!-- Sidebar Presets -->
+        <div style="width: 72px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
+          ${FILL_PRESETS.map((p, idx) => `
+            <div onclick="selectMockupFillPreset(${idx})" style="background: ${currentFillPreset === idx ? 'rgba(255,85,0,0.12)' : 'var(--bg-surface)'}; border: 1px solid ${currentFillPreset === idx ? 'var(--accent-red)' : 'var(--border-deck)'}; border-radius: 6px; padding: 8px 4px; text-align: center; cursor: pointer; transition: all 0.15s;">
+              <div style="font-size: 10px; font-weight: 600; color: ${currentFillPreset === idx ? 'var(--accent-red)' : 'var(--text-sub)'}; line-height: 1.2;">${p.name}</div>
             </div>
-            <input type="range" min="0" max="200" value="110" style="width: 100%; accent-color: #FF5500;">
+          `).join('')}
+          <div style="background: transparent; border: 1px dashed var(--border-deck); border-radius: 6px; padding: 6px 4px; text-align: center; color: var(--text-muted); font-size: 10px; cursor: pointer;">＋新建</div>
+        </div>
+
+        <!-- Main Editor -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+          <div style="flex: 1; background: var(--bg-surface); border: 1px solid var(--border-deck); border-radius: 6px; padding: 6px 8px; font-family: var(--font-mono); font-size: 10px; color: var(--text-main); line-height: 1.5; overflow: hidden;">
+            ${lines.map((l, i) => `<div style="display: flex; gap: 8px;"><span style="color: var(--text-muted);">${i+1}</span><span>${l}</span></div>`).join('')}
+          </div>
+
+          <div style="display: flex; gap: 6px;">
+            <input class="mockup-input-box" placeholder="前缀: 如 ¥" style="flex: 1; height: 24px; font-size: 10px;" />
+            <input class="mockup-input-box" placeholder="后缀: 如 /月" style="flex: 1; height: 24px; font-size: 10px;" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button class="mockup-btn-primary" style="height: 26px; font-size: 10.5px; padding: 0;">正序填充</button>
+            <button class="mockup-btn-secondary" style="height: 26px; font-size: 10.5px; padding: 0;">随机填充</button>
+            <button class="mockup-btn-secondary" style="height: 26px; font-size: 10.5px; padding: 0;">倒序填充</button>
+            <button class="mockup-btn-secondary" style="height: 26px; font-size: 10.5px; padding: 0;">图层重命名</button>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  compress() {
+    return `
+      <div class="mockup-section-header" style="padding-top: 2px;">
+        <span class="mockup-section-title">TinyPNG 账号池配置</span>
+        <span class="mockup-section-hint" style="color: var(--text-sub);">额度: 740/1000</span>
+      </div>
+
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 8px 14px;">
+          <div style="font-size: 10px; color: var(--text-sub); line-height: 1.4;">
+            配置 TinyPNG API Key 开启云端极速压缩（不填则使用本地引擎）。
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <input class="mockup-input-box" type="password" value="5c98a72b99f3" placeholder="输入 TinyPNG API Key..." style="flex: 1; font-family: var(--font-mono);" />
+            <button class="mockup-btn-primary" style="height: 28px; padding: 0 10px; font-size: 10.5px; flex-shrink: 0;">保存并添加</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 2px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-muted); padding: 4px 8px; border-radius: 4px; font-size: 10px;">
+              <span style="font-family: var(--font-mono);">5c98****3f1a</span>
+              <span style="color: var(--text-muted);">380/500</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-muted); padding: 4px 8px; border-radius: 4px; font-size: 10px;">
+              <span style="font-family: var(--font-mono);">9b21****88e4</span>
+              <span style="color: var(--text-muted);">360/500</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div style="background: #0E1015; border: 1px solid #222530; border-radius: 10px; padding: 14px;">
-        <div style="font-size: 0.75rem; color: #666; font-weight: 600; margin-bottom: 8px;">🎨 本地常用调色板快速提取</div>
-        <div style="display: flex; gap: 8px;">
-          <div style="width: 32px; height: 32px; border-radius: 6px; background: #FF5500; border: 1px solid rgba(255,255,255,0.2);"></div>
-          <div style="width: 32px; height: 32px; border-radius: 6px; background: #FFAA55; border: 1px solid rgba(255,255,255,0.2);"></div>
-          <div style="width: 32px; height: 32px; border-radius: 6px; background: #1C1E26; border: 1px solid rgba(255,255,255,0.2);"></div>
-          <div style="width: 32px; height: 32px; border-radius: 6px; background: #00D26A; border: 1px solid rgba(255,255,255,0.2);"></div>
-        </div>
+      <div class="mockup-section-header" style="padding-top: 4px;">
+        <span class="mockup-section-title">导出设置</span>
       </div>
 
-      <div style="display: flex; gap: 12px; align-items: center; justify-content: flex-end; border-top: 1px solid #1F222D; padding-top: 14px;">
-        <button style="background: linear-gradient(135deg, #FF6600, #FF4400); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 85, 0, 0.35);">
-          应用调色到所选画板
-        </button>
-      </div>
-    </div>
-  `,
-
-  tools: `
-    <div style="display: flex; flex-direction: column; gap: 14px; height: 100%;">
-      <div style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase;">设计师常用快捷小工具</div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div style="background: #161922; border: 1px solid #262A38; border-radius: 8px; padding: 14px; cursor: pointer;">
-          <div style="font-size: 1.1rem; margin-bottom: 4px;">📸 画布拼图直出</div>
-          <div style="font-size: 0.78rem; color: #888;">一键将多画板按序拼成带标题的高清大图</div>
-        </div>
-
-        <div style="background: #161922; border: 1px solid #262A38; border-radius: 8px; padding: 14px; cursor: pointer;">
-          <div style="font-size: 1.1rem; margin-bottom: 4px;">📏 文本行高批量规范</div>
-          <div style="font-size: 0.78rem; color: #888;">批量将固定行高转为 Auto，或反向固定</div>
-        </div>
-
-        <div style="background: #161922; border: 1px solid #262A38; border-radius: 8px; padding: 14px; cursor: pointer;">
-          <div style="font-size: 1.1rem; margin-bottom: 4px;">✂️ PNG 透明留白裁切</div>
-          <div style="font-size: 0.78rem; color: #888;">智能识别并裁切图片四周无用透明区域</div>
-        </div>
-
-        <div style="background: #161922; border: 1px solid #262A38; border-radius: 8px; padding: 14px; cursor: pointer;">
-          <div style="font-size: 1.1rem; margin-bottom: 4px;">📋 微信切图一键直拷</div>
-          <div style="font-size: 0.78rem; color: #888;">剪贴板直写多图，聊天窗口直接 ⌘+V</div>
-        </div>
-      </div>
-    </div>
-  `,
-
-  sync: `
-    <div style="display: flex; flex-direction: column; gap: 16px; height: 100%; justify-content: space-between;">
-      <div>
-        <div style="font-size: 0.8rem; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 8px;">云端配置跨设备自动同步</div>
-        <div style="background: #161922; border: 1px solid #2A2E3D; border-radius: 10px; padding: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="font-size: 0.85rem; font-weight: 600; color: #FFF;">专属同步密钥 (License Key)</span>
-            <span style="font-size: 0.75rem; background: rgba(0, 210, 106, 0.15); color: #00D26A; padding: 2px 8px; border-radius: 4px; font-weight: 700;">🟢 云端同步已就绪</span>
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row">
+          <span style="font-size: 11px;">输出格式</span>
+          <div class="mockup-segmented-control" style="margin: 0; width: 120px;">
+            <button class="mockup-segment-btn active">PNG</button>
+            <button class="mockup-segment-btn">JPG</button>
           </div>
-          <div style="background: #0E1015; border: 1px solid #222530; padding: 8px 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.9rem; color: #FFAA55; display: flex; justify-content: space-between; align-items: center;">
-            <span>VB-3C9E-****-****-BB34</span>
-            <span style="font-size: 0.75rem; color: #777;">已保护</span>
+        </div>
+        <div class="mockup-setting-row">
+          <span style="font-size: 11px;">导出倍率</span>
+          <div class="mockup-segmented-control" style="margin: 0; width: 130px;">
+            <button class="mockup-segment-btn">1x</button>
+            <button class="mockup-segment-btn active">2x</button>
+            <button class="mockup-segment-btn">3x</button>
           </div>
         </div>
       </div>
 
-      <div style="font-size: 0.82rem; color: #888; line-height: 1.5;">
-        💡 换新电脑或重装系统后，仅需输入上述密钥，所有自定义大模型 API Key、TinyPNG 账号池及词库设置秒级全量还原。
+      <div class="mockup-action-bar">
+        <button class="mockup-btn-primary" style="flex: 1;">云端极速压缩导出 (8)</button>
+      </div>
+    `;
+  },
+
+  color() {
+    return `
+      <div class="mockup-section-header">
+        <span class="mockup-section-title">调色范围</span>
       </div>
 
-      <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #1F222D; padding-top: 14px;">
-        <button style="background: #252936; border: 1px solid #3A3F52; color: #DDD; padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-          拉取云端配置
-        </button>
-        <button style="background: linear-gradient(135deg, #FF6600, #FF4400); color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-          立即手动备份
-        </button>
+      <div class="mockup-segmented-control">
+        <button class="mockup-segment-btn active">全部色彩</button>
+        <button class="mockup-segment-btn">仅填充</button>
+        <button class="mockup-segment-btn">仅描边</button>
       </div>
-    </div>
-  `
+
+      <div class="mockup-section-header">
+        <span class="mockup-section-title">色彩调节 (HSL)</span>
+      </div>
+
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px;">
+            <span>色相 (Hue)</span>
+            <span id="mockup-hue-val" style="font-family: var(--font-mono); font-weight: 600;">+15°</span>
+          </div>
+          <input type="range" min="-180" max="180" value="15" style="width: 100%; accent-color: var(--accent-red);" oninput="document.getElementById('mockup-hue-val').innerText = (this.value > 0 ? '+' : '') + this.value + '°'" />
+        </div>
+
+        <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px;">
+            <span>饱和度 (Saturation)</span>
+            <span id="mockup-sat-val" style="font-family: var(--font-mono); font-weight: 600;">+10%</span>
+          </div>
+          <input type="range" min="-100" max="100" value="10" style="width: 100%; accent-color: var(--accent-red);" oninput="document.getElementById('mockup-sat-val').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" />
+        </div>
+
+        <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px;">
+            <span>明度 (Lightness)</span>
+            <span id="mockup-lit-val" style="font-family: var(--font-mono); font-weight: 600;">0%</span>
+          </div>
+          <input type="range" min="-100" max="100" value="0" style="width: 100%; accent-color: var(--accent-red);" oninput="document.getElementById('mockup-lit-val').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" />
+        </div>
+      </div>
+
+      <div class="mockup-action-bar">
+        <button class="mockup-btn-primary" style="flex: 1;">应用调色</button>
+        <button class="mockup-btn-secondary">重置</button>
+      </div>
+    `;
+  },
+
+  tools() {
+    return `
+      <div class="mockup-section-header" style="padding-top: 2px;">
+        <span class="mockup-section-title">本地服务助手</span>
+      </div>
+
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row">
+          <span style="font-size: 11.5px; font-weight: 500;">本地直拷服务</span>
+          <span style="font-size: 10.5px; color: var(--accent-green); font-weight: 600;">● 极速直拷已开启</span>
+        </div>
+      </div>
+
+      <div class="mockup-section-header" style="padding-top: 4px;">
+        <span class="mockup-section-title">快捷设计工具</span>
+      </div>
+
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row">
+          <span style="font-size: 11.5px; font-weight: 500;">画布生成拼图（带标题）</span>
+          <button class="mockup-btn-primary" style="height: 24px; padding: 0 10px; font-size: 10.5px;">生成</button>
+        </div>
+        <div class="mockup-setting-row">
+          <span style="font-size: 11.5px; font-weight: 500;">批量导出所选画板</span>
+          <button class="mockup-btn-primary" style="height: 24px; padding: 0 10px; font-size: 10.5px;">复制</button>
+        </div>
+        <div class="mockup-setting-row">
+          <span style="font-size: 11.5px; font-weight: 500;">文本固定行高转auto</span>
+          <button class="mockup-btn-primary" style="height: 24px; padding: 0 10px; font-size: 10.5px;">执行</button>
+        </div>
+        <div class="mockup-setting-row">
+          <span style="font-size: 11.5px; font-weight: 500;">裁切PNG透明边缘</span>
+          <button class="mockup-btn-primary" style="height: 24px; padding: 0 10px; font-size: 10.5px;">执行</button>
+        </div>
+      </div>
+    `;
+  },
+
+  settings() {
+    return `
+      <div class="mockup-section-header" style="padding-top: 2px;">
+        <span class="mockup-section-title">账号与多端配置同步</span>
+        <span class="mockup-section-hint" style="color: var(--accent-green); font-weight: 600;">跨设备免配置</span>
+      </div>
+
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 8px 14px;">
+          <div style="font-size: 10px; color: var(--text-sub); line-height: 1.4;">
+            绑定同步密钥/激活码，换设备一键恢复所有 API Key 与设置。
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <input class="mockup-input-box" value="VB-98F1-3A2B" style="flex: 1; font-family: var(--font-mono);" />
+            <button class="mockup-btn-primary" style="height: 28px; padding: 0 10px; font-size: 10.5px; flex-shrink: 0;">绑定并同步</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mockup-section-header" style="padding-top: 4px;">
+        <span class="mockup-section-title">官方免费通道</span>
+        <span class="mockup-section-hint" style="color: var(--accent-green); font-weight: 600;">● 运行正常</span>
+      </div>
+
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 11.5px; font-weight: 600;">极速翻译引擎</span>
+            <span style="font-size: 9.5px; color: var(--text-sub);">全球 100+ 语言 · 毫秒级多通道加速</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mockup-section-header" style="padding-top: 4px;">
+        <span class="mockup-section-title">自定义 AI 大模型（可选）</span>
+      </div>
+
+      <div class="mockup-setting-group">
+        <div class="mockup-setting-row">
+          <span style="font-size: 11px;">服务商</span>
+          <select class="mockup-input-box" style="width: 140px;">
+            <option>DeepSeek AI (推荐)</option>
+            <option>OpenAI (ChatGPT)</option>
+          </select>
+        </div>
+        <div class="mockup-setting-row">
+          <span style="font-size: 11px;">API Key</span>
+          <input class="mockup-input-box" type="password" value="sk-d98f7123aa" style="width: 140px; font-family: var(--font-mono);" />
+        </div>
+      </div>
+    `;
+  }
 };
 
-function switchMockupTab(tabKey, element) {
-  document.querySelectorAll('.mockup-tab-btn').forEach(btn => btn.classList.remove('active'));
-  if (element) element.classList.add('active');
-  const container = document.getElementById('mockup-content-view');
-  if (container && MockupViews[tabKey]) {
-    container.innerHTML = MockupViews[tabKey];
+function renderMockup() {
+  const container = document.getElementById('mockup-view-content');
+  if (container && MockupViews[currentTab]) {
+    container.innerHTML = MockupViews[currentTab]();
   }
+
+  // Update Top Keypad active buttons
+  document.querySelectorAll('#mockup-keypad .mockup-key').forEach(btn => {
+    if (btn.getAttribute('data-tab') === currentTab) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+function setMockupTab(tab) {
+  currentTab = tab;
+  renderMockup();
+}
+
+function setMockupTheme(theme) {
+  currentTheme = theme;
+  const sim = document.getElementById('plugin-simulator');
+  const btnLight = document.getElementById('mockup-theme-light');
+  const btnDark = document.getElementById('mockup-theme-dark');
+
+  if (theme === 'light') {
+    sim.classList.remove('theme-dark');
+    sim.classList.add('theme-light');
+    btnLight.classList.add('active');
+    btnDark.classList.remove('active');
+  } else {
+    sim.classList.remove('theme-light');
+    sim.classList.add('theme-dark');
+    btnDark.classList.add('active');
+    btnLight.classList.remove('active');
+  }
+}
+
+function selectMockupLang(code) {
+  currentLang = code;
+  renderMockup();
+}
+
+function selectMockupFillPreset(idx) {
+  currentFillPreset = idx;
+  renderMockup();
 }
 
 function toggleFaq(btn) {
@@ -216,40 +354,7 @@ function toggleFaq(btn) {
   }
 }
 
-function showToast(msg) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.innerText = msg;
-  toast.classList.add('show');
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 2500);
-}
-
-function copyCloneCommand() {
-  const cmd = 'git clone https://github.com/haifengcy/Figma-VolcBox.git';
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(cmd).then(() => {
-      showToast('📋 Git Clone 命令已复制到剪贴板！');
-    }).catch(() => {
-      fallbackCopy(cmd);
-    });
-  } else {
-    fallbackCopy(cmd);
-  }
-}
-
-function fallbackCopy(text) {
-  const input = document.createElement('textarea');
-  input.value = text;
-  document.body.appendChild(input);
-  input.select();
-  document.execCommand('copy');
-  document.body.removeChild(input);
-  showToast('📋 Git Clone 命令已复制到剪贴板！');
-}
-
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
-  switchMockupTab('translate', document.querySelector('.mockup-tab-btn'));
+  renderMockup();
 });
