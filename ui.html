@@ -90,7 +90,7 @@
       align-items: center;
       justify-content: center;
       height: 28px;
-      background-color: #FCFAF6;
+      background-color: var(--bg-surface);
       border: 1px solid var(--border-chassis);
       border-radius: 6px;
       cursor: pointer;
@@ -102,19 +102,19 @@
       color: var(--text-sub);
     }
     .tactile-key:hover:not(.active) {
-      background-color: #FFFFFF;
-      border-color: #C8C0B2;
+      background-color: var(--bg-hover);
+      border-color: var(--border-deck);
       color: var(--text-main);
     }
     .tactile-key:active {
       transform: translateY(1px);
     }
     .tactile-key.active {
-      background-color: #FFFFFF !important;
-      border-color: #D8D0C2 !important;
+      background-color: var(--bg-surface) !important;
+      border-color: var(--border-deck) !important;
       color: var(--text-main) !important;
       font-weight: 600;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px #D8D0C2 !important;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--border-deck) !important;
       transform: translateY(1px);
     }
 
@@ -184,9 +184,8 @@
       color: var(--text-muted);
     }
 
-    /* --- UNIFIED CARDS & CONTAINERS --- */
-    .card-deck {
-      margin: 0 12px 6px 12px;
+    /* --- UNIFIED CARDS & TILES --- */
+    .tile-card {
       background-color: var(--bg-surface);
       border: 1px solid var(--border-deck);
       border-radius: 7px;
@@ -223,7 +222,7 @@
       color: var(--text-main);
     }
     .segment-btn.active {
-      background-color: #FFFFFF !important;
+      background-color: var(--bg-surface) !important;
       color: var(--text-main) !important;
       font-weight: 600;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
@@ -233,7 +232,7 @@
     .setting-group {
       display: flex;
       flex-direction: column;
-      background-color: #FAF8F4;
+      background-color: var(--bg-deck);
       border-top: 1px solid var(--border-subtle);
       border-bottom: 1px solid var(--border-subtle);
       margin-bottom: 6px;
@@ -291,7 +290,7 @@
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      background: #FFFFFF;
+      background: var(--bg-surface);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -303,7 +302,7 @@
     .input-box {
       width: 100%;
       height: 28px;
-      background-color: #FFFFFF;
+      background-color: var(--bg-surface);
       border: 1px solid var(--border-deck);
       border-radius: 6px;
       padding: 0 8px;
@@ -327,7 +326,7 @@
       width: 100%;
       height: 28px;
       padding: 0 24px 0 8px;
-      background-color: #FFFFFF;
+      background-color: var(--bg-surface);
       border: 1px solid var(--border-deck);
       border-radius: 6px;
       font-size: 11.5px;
@@ -417,14 +416,14 @@
       transform: translateY(1px);
     }
     .btn-secondary {
-      background-color: #FCFAF6;
+      background-color: var(--bg-surface);
       color: var(--text-main);
       border-color: var(--border-chassis);
       box-shadow: var(--shadow-key);
     }
     .btn-secondary:hover:not(:disabled) {
-      background-color: #FFFFFF;
-      border-color: #C8C0B2;
+      background-color: var(--bg-hover);
+      border-color: var(--border-deck);
     }
     .btn-secondary:active:not(:disabled) {
       transform: translateY(1px);
@@ -467,7 +466,7 @@
       flex-direction: column;
       align-items: flex-start;
       padding: 4px 6px;
-      background-color: #FCFAF6;
+      background-color: var(--bg-surface);
       border: 1px solid var(--border-chassis);
       border-radius: 6px;
       cursor: pointer;
@@ -477,11 +476,11 @@
       min-height: 38px;
     }
     .lang-chip:hover:not(.active) {
-      background-color: #FFFFFF;
-      border-color: #C8C0B2;
+      background-color: var(--bg-hover);
+      border-color: var(--border-deck);
     }
     .lang-chip.active {
-      background-color: #FFFFFF !important;
+      background-color: var(--bg-surface) !important;
       border-color: var(--accent-red) !important;
       box-shadow: 0 0 0 1px var(--accent-red), 0 2px 4px rgba(255, 69, 58, 0.2) !important;
       transform: translateY(1px);
@@ -544,7 +543,7 @@
     }
     .preset-square {
       aspect-ratio: 1 / 1;
-      background: #FFFFFF;
+      background: var(--bg-surface);
       border: 1px solid var(--border-deck);
       border-radius: 8px;
       display: flex;
@@ -558,12 +557,13 @@
       position: relative;
     }
     .preset-square:hover {
-      border-color: #C8C0B2;
+      background: var(--bg-hover);
+      border-color: var(--border-deck);
       box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
     .preset-square.active {
       border-color: var(--accent-red);
-      background: #FFF9F9;
+      background: var(--bg-surface);
       box-shadow: 0 0 0 1px var(--accent-red);
     }
     .preset-name {
@@ -584,7 +584,7 @@
     .editor-deck {
       display: flex;
       margin: 0 12px 6px 12px;
-      background-color: #FFFFFF;
+      background-color: var(--bg-surface);
       border: 1px solid var(--border-deck);
       border-radius: 7px;
       overflow: hidden;
@@ -595,9 +595,9 @@
     .line-numbers {
       width: 26px;
       padding: 6px 4px;
-      background-color: #F6F3EB;
+      background-color: var(--bg-muted);
       border-right: 1px solid var(--border-deck);
-      color: #A39B8E;
+      color: var(--text-muted);
       font-family: var(--font-mono);
       font-size: 11px;
       line-height: 1.5;
@@ -790,7 +790,7 @@
     }
 
     /* =====================================================================
-       VOLCBOX NEXT - DARK MODE SYSTEM (Official Website Theme)
+       VOLCBOX NEXT - COMPREHENSIVE DARK MODE SYSTEM (Official Website Theme)
        ===================================================================== */
     body.theme-dark {
       --bg-chassis: #090A0D;
@@ -799,15 +799,20 @@
       --bg-hover: #1F222E;
       --bg-active: #272B3A;
       --bg-muted: #14161E;
+      --bg-tertiary: #1A1D28;
       
       --border-chassis: rgba(255, 255, 255, 0.08);
       --border-deck: rgba(255, 255, 255, 0.1);
       --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-color: rgba(255, 255, 255, 0.08);
       --border-focus: #FF5500;
       
       --text-main: #F4F4F6;
       --text-sub: #A2A6B4;
       --text-muted: #6B7082;
+      --text-primary: #F4F4F6;
+      --text-secondary: #A2A6B4;
+      --text-tertiary: #6B7082;
       --text-inverse: #090A0D;
       
       --accent-red: #FF5500;
@@ -821,15 +826,16 @@
       --shadow-deck: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
 
+    /* 1. Top Keypad */
     body.theme-dark .tactile-key {
       background-color: #14161E;
       border-color: rgba(255, 255, 255, 0.08);
-      color: var(--text-sub);
+      color: #A2A6B4;
     }
     body.theme-dark .tactile-key:hover:not(.active) {
       background-color: #1C1F2A;
       border-color: rgba(255, 255, 255, 0.16);
-      color: var(--text-main);
+      color: #F4F4F6;
     }
     body.theme-dark .tactile-key.active {
       background-color: #1E222E !important;
@@ -841,9 +847,187 @@
       background-color: #383D4E;
     }
     body.theme-dark .tactile-key.active .led-dot {
-      background-color: var(--accent-red) !important;
+      background-color: #FF5500 !important;
       box-shadow: 0 0 6px rgba(255, 85, 0, 0.9);
     }
+
+    /* 2. Sub-tab Segmented Controls */
+    body.theme-dark .segmented-control {
+      background-color: #141620;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    body.theme-dark .segment-btn {
+      color: #8E92A2;
+    }
+    body.theme-dark .segment-btn:hover:not(.active) {
+      color: #F4F4F6;
+    }
+    body.theme-dark .segment-btn.active {
+      background-color: #242836 !important;
+      color: #FFAA55 !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    /* 3. Language Chips */
+    body.theme-dark .lang-chip {
+      background-color: #171922;
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #F4F4F6;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+    }
+    body.theme-dark .lang-chip:hover:not(.active) {
+      background-color: #1F222E;
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+    body.theme-dark .lang-chip.active {
+      background-color: #202432 !important;
+      border-color: #FF5500 !important;
+      box-shadow: 0 0 0 1px #FF5500, 0 2px 8px rgba(255, 85, 0, 0.3) !important;
+    }
+    body.theme-dark .lang-name {
+      color: #F4F4F6;
+    }
+    body.theme-dark .lang-en {
+      color: #7A8094;
+    }
+    body.theme-dark .lang-chip-add {
+      background-color: #14161E !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      color: #7A8094 !important;
+    }
+    body.theme-dark .lang-chip-add:hover {
+      background-color: #1C1F2A !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      color: #F4F4F6 !important;
+    }
+
+    /* 4. Setting Groups & Rows */
+    body.theme-dark .setting-group {
+      background-color: #151720;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    body.theme-dark .setting-row {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+    body.theme-dark .setting-label {
+      color: #F4F4F6;
+    }
+    body.theme-dark .setting-sublabel {
+      color: #7A8094;
+    }
+
+    /* 5. Tactile Switch */
+    body.theme-dark .tactile-switch {
+      background-color: #2A2E3D;
+      border-color: #383D50;
+    }
+    body.theme-dark .tactile-switch.checked {
+      background-color: #FF5500;
+      border-color: #FF661A;
+    }
+    body.theme-dark .switch-knob {
+      background: #F4F4F6;
+    }
+
+    /* 6. Buttons */
+    body.theme-dark .btn-primary {
+      background-color: #FF5500;
+      border-color: #E64C00;
+      color: #FFFFFF;
+      box-shadow: 0 2px #CC4400, 0 4px 12px rgba(255, 85, 0, 0.35);
+    }
+    body.theme-dark .btn-primary:hover:not(:disabled) {
+      background-color: #FF661A;
+    }
+    body.theme-dark .btn-secondary {
+      background-color: #1E212C;
+      color: #F4F4F6;
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+    }
+    body.theme-dark .btn-secondary:hover:not(:disabled) {
+      background-color: #272B38;
+      border-color: rgba(255, 255, 255, 0.22);
+      color: #FFFFFF;
+    }
+
+    /* 7. Inputs, Textareas, Selects */
+    body.theme-dark .input-box,
+    body.theme-dark textarea,
+    body.theme-dark select,
+    body.theme-dark .select-custom {
+      background-color: #13151D !important;
+      color: #F4F4F6 !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    body.theme-dark .input-box:focus,
+    body.theme-dark textarea:focus,
+    body.theme-dark .select-custom:focus {
+      border-color: #FF5500 !important;
+      box-shadow: 0 0 0 1px #FF5500 !important;
+    }
+
+    /* 8. Preset Grid & Editor in Fill */
+    body.theme-dark .preset-square {
+      background: #171922;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    body.theme-dark .preset-square:hover {
+      background: #1F222E;
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+    body.theme-dark .preset-square.active {
+      background: #222634;
+      border-color: #FF5500;
+      box-shadow: 0 0 0 1px #FF5500;
+    }
+    body.theme-dark .preset-name {
+      color: #F4F4F6;
+    }
+    body.theme-dark .editor-deck {
+      background-color: #13151D;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    body.theme-dark .line-numbers {
+      background-color: #171922;
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #585E72;
+    }
+    body.theme-dark .editor-textarea {
+      color: #F4F4F6;
+      background: transparent;
+    }
+    body.theme-dark .affix-label {
+      color: #8E92A2;
+    }
+    body.theme-dark .undo-action-btn {
+      color: #8E92A2;
+    }
+    body.theme-dark .undo-action-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      color: #F4F4F6;
+    }
+
+    /* 9. Card decks & Modal */
+    body.theme-dark .card-deck {
+      background: #151720 !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    body.theme-dark .modal-content {
+      background-color: #171922;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #F4F4F6;
+    }
+    body.theme-dark #preset-context-menu {
+      background: #171922 !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      color: #F4F4F6 !important;
+    }
+    body.theme-dark .modal-list-item:hover {
+      background: #1F222E;
+    }
+
+    /* 10. Bottom Bar & Theme Switcher */
     body.theme-dark .bottom-brand {
       color: #636878;
       text-shadow: none;
@@ -862,31 +1046,6 @@
       background: #252836;
       color: #FFAA55;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-    }
-    body.theme-dark .input-box,
-    body.theme-dark textarea,
-    body.theme-dark select {
-      background-color: #13151D !important;
-      color: var(--text-main) !important;
-      border-color: rgba(255, 255, 255, 0.1) !important;
-    }
-    body.theme-dark .tile-card,
-    body.theme-dark .card-item,
-    body.theme-dark .preset-tab-btn,
-    body.theme-dark .sub-tab-btn {
-      background-color: #151720;
-      border-color: rgba(255, 255, 255, 0.08);
-      color: var(--text-main);
-    }
-    body.theme-dark .modal-content {
-      background-color: #171922;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: var(--text-main);
-    }
-    body.theme-dark #preset-context-menu {
-      background: #171922 !important;
-      border-color: rgba(255, 255, 255, 0.1) !important;
-      color: var(--text-main) !important;
     }
 
     /* --- MODAL --- */
@@ -1614,7 +1773,7 @@
               </button>
               `;
             }).join('')}
-            <button class="lang-chip" onclick="openLangPicker('single')" style="align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; min-height: 38px; border: 1px dashed #C8C0B2; background-color: #F5F3ED; box-shadow: none; transition: all 0.2s;">
+            <button class="lang-chip lang-chip-add" onclick="openLangPicker('single')" style="align-items: center; justify-content: center; font-size: 16px; min-height: 38px; border-style: dashed; box-shadow: none; transition: all 0.2s;">
               <span>＋</span>
             </button>
           </div>
@@ -1664,7 +1823,7 @@
         return `
           <div style="display: flex; flex-direction: column; gap: 8px; padding: 6px 12px; flex: 1; overflow-y: auto;">
             ${listHtml}
-            <button class="lang-chip" onclick="createNewScheme()" style="width: 100%; flex-direction: row; align-items: center; justify-content: center; color: var(--text-muted); font-size: 12px; min-height: 48px; border: 1px dashed #C8C0B2; background-color: #F5F3ED; box-shadow: none; transition: all 0.2s;">
+            <button class="lang-chip lang-chip-add" onclick="createNewScheme()" style="width: 100%; flex-direction: row; align-items: center; justify-content: center; font-size: 12px; min-height: 48px; border-style: dashed; box-shadow: none; transition: all 0.2s;">
               <span style="font-size: 14px; margin-right: 4px;">＋</span> 新建多语言画板方案
             </button>
           </div>
@@ -1682,7 +1841,7 @@
         const langTags = s.languages.map((code, idx) => {
           const l = getLangByCode(code);
           return `
-            <div style="display: inline-flex; align-items: center; background: #F5F3ED; border: 1px solid #E8E2D5; border-radius: 6px; padding: 4px 8px; font-size: 11px; color: var(--text-main);">
+            <div style="display: inline-flex; align-items: center; background: var(--bg-muted); border: 1px solid var(--border-deck); border-radius: 6px; padding: 4px 8px; font-size: 11px; color: var(--text-main);">
               <span style="margin-right: 4px;">${l?.flag}</span> 
               <span>${l?.name}</span>
               <span style="margin-left: 8px; color: var(--text-muted); cursor: pointer; font-size: 10px;" onclick="removeLangFromScheme(${idx})">✕</span>
@@ -1711,7 +1870,7 @@
                   </div>
                   <div style="position: relative;">
                     <input type="text" class="input-box" placeholder="搜索并添加语言..." id="inline-lang-search" oninput="renderInlineLangSearch(this.value)" onfocus="renderInlineLangSearch(this.value)" onblur="setTimeout(() => { const el = document.getElementById('inline-lang-results'); if(el) el.style.display = 'none'; }, 200)" autocomplete="off" />
-                    <div id="inline-lang-results" style="display: none; position: absolute; width: 100%; z-index: 10; max-height: 140px; overflow-y: auto; background: #FFFFFF; border: 1px solid var(--border-chassis); border-radius: 6px; margin-top: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div id="inline-lang-results" style="display: none; position: absolute; width: 100%; z-index: 10; max-height: 140px; overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border-chassis); border-radius: 6px; margin-top: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                     </div>
                   </div>
                 </div>
@@ -1788,9 +1947,9 @@
            let html = `<div class="preset-grid">`;
            // Smart Mock Default
            html += `
-             <div class="preset-square" onclick="startSmartFill()" style="background: linear-gradient(135deg, #FFF9EB 0%, #F5F0E1 100%); border-color: #EAE4D8;">
+             <div class="preset-square" onclick="startSmartFill()" style="background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-muted) 100%); border-color: var(--border-deck);">
                <div style="font-size: 16px; margin-bottom: 2px;">✨</div>
-               <div class="preset-name" style="color: #D97706; font-weight: 600;">数据模拟</div>
+               <div class="preset-name" style="color: var(--accent-amber); font-weight: 600;">数据模拟</div>
              </div>
            `;
            // User presets
@@ -1822,8 +1981,8 @@
              </div>
 
              <div style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 2px 0;">
-               <div style="display: flex; align-items: center; gap: 6px; background: ${state.selection.totalSelected > 0 ? '#FFF4F4' : '#F8F6F1'}; padding: 3px 8px; border-radius: 12px; border: 1px solid ${state.selection.totalSelected > 0 ? '#FCE3E3' : 'var(--border-deck)'}; transition: all 0.2s ease;">
-                 <div style="width: 5px; height: 5px; border-radius: 50%; background: ${state.selection.totalSelected > 0 ? 'var(--accent-red)' : '#D9D2C4'};"></div>
+               <div style="display: flex; align-items: center; gap: 6px; background: ${state.selection.totalSelected > 0 ? 'rgba(255, 85, 0, 0.1)' : 'var(--bg-muted)'}; padding: 3px 8px; border-radius: 12px; border: 1px solid ${state.selection.totalSelected > 0 ? 'rgba(255, 85, 0, 0.25)' : 'var(--border-deck)'}; transition: all 0.2s ease;">
+                 <div style="width: 5px; height: 5px; border-radius: 50%; background: ${state.selection.totalSelected > 0 ? 'var(--accent-red)' : 'var(--text-tertiary)'};"></div>
                  <span style="font-size: 10px; color: ${state.selection.totalSelected > 0 ? 'var(--accent-red)' : 'var(--text-sub)'}; font-weight: 500;">
                    已选中 ${state.selection.totalSelected} 个图层
                  </span>
@@ -2052,7 +2211,7 @@
               `}
             </div>
 
-            <div style="border-top: 1px dashed #D8D2C5; margin: 0 12px;"></div>
+            <div style="border-top: 1px dashed var(--border-deck); margin: 0 12px;"></div>
 
             <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: none;">
               <div style="display: flex; align-items: center; gap: 8px;">
@@ -2062,7 +2221,7 @@
               <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="executeCollage()" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>${hasLocal ? '复制' : '生成'}</button>
             </div>
 
-            <div style="border-top: 1px dashed #D8D2C5; margin: 0 12px;"></div>
+            <div style="border-top: 1px dashed var(--border-deck); margin: 0 12px;"></div>
 
             <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: 1px solid var(--border-subtle);">
               <div style="display: flex; align-items: center; gap: 8px;">
@@ -2185,7 +2344,7 @@
                   <span style="font-size: 13px;">☁️</span>
                   <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">云端配置多端同步</span>
                 </div>
-                <span style="font-size: 10px; color: var(--text-sub); background: #EDE8DE; padding: 2px 6px; border-radius: 4px; font-weight: 500;">跨设备免配置</span>
+                <span style="font-size: 10px; color: var(--text-sub); background: var(--bg-muted); padding: 2px 6px; border-radius: 4px; font-weight: 500;">跨设备免配置</span>
               </div>
               <div style="font-size: 10.5px; color: var(--text-sub); line-height: 1.4; margin-bottom: 10px;">
                 绑定同步密钥/激活码，换设备一键恢复所有 API Key、TinyPNG 池与词库偏好。
@@ -2207,7 +2366,7 @@
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span class="status-indicator-dot"></span>
                   <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">极速翻译引擎</span>
-                  <span style="font-size: 10px; color: var(--text-sub); background: #EDE8DE; padding: 1px 5px; border-radius: 3px; font-weight: 500;">免配置</span>
+                  <span style="font-size: 10px; color: var(--text-sub); background: var(--bg-muted); padding: 1px 5px; border-radius: 3px; font-weight: 500;">免配置</span>
                 </div>
                 <span style="font-size: 10.5px; color: var(--text-sub);">全球 100+ 语言即开即用 · 毫秒级多通道加速</span>
               </div>
