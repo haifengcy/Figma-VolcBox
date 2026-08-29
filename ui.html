@@ -16,19 +16,24 @@
       --bg-hover: #F0ECE4;
       --bg-active: #E8E2D6;
       --bg-muted: #EDE8DE;
+      --bg-tertiary: rgba(0, 0, 0, 0.04);
       
       --border-chassis: #DDD6C9;
       --border-deck: #E5DFD4;
       --border-subtle: #ECE6DC;
-      --border-focus: #FF453A;
+      --border-color: #ECE6DC;
+      --border-focus: #FF5500;
       
       --text-main: #1D1A16;
       --text-sub: #6E675C;
       --text-muted: #9E9689;
+      --text-primary: #1D1A16;
+      --text-secondary: #6E675C;
+      --text-tertiary: #9E9689;
       --text-inverse: #FFFFFF;
       
-      --accent-red: #FF453A;
-      --accent-red-hover: #E83B30;
+      --accent-red: #FF5500;
+      --accent-red-hover: #E64C00;
       --accent-green: #30D158;
       --accent-blue: #0066CC;
       --accent-amber: #F59E0B;
@@ -162,13 +167,13 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 12px 6px 12px;
+      padding: 10px 14px 4px 14px;
     }
     .deck-scroll-area > *:first-child {
       margin-top: 0 !important;
     }
     .deck-scroll-area > .section-header:first-child {
-      padding-top: 0 !important;
+      padding-top: 2px !important;
     }
     .deck-scroll-area > .preset-bar:first-child {
       padding-top: 0 !important;
@@ -201,7 +206,7 @@
       border-radius: 7px;
       padding: 2.5px;
       gap: 3px;
-      margin: 0 12px 6px 12px;
+      margin: 0 14px 6px 14px;
     }
     .segment-btn {
       flex: 1;
@@ -232,17 +237,17 @@
     .setting-group {
       display: flex;
       flex-direction: column;
-      background-color: var(--bg-deck);
+      background-color: var(--bg-surface);
       border-top: 1px solid var(--border-subtle);
       border-bottom: 1px solid var(--border-subtle);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .setting-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 7px 12px;
-      min-height: 36px;
+      padding: 8px 14px;
+      min-height: 38px;
       border-bottom: 1px solid var(--border-subtle);
     }
     .setting-row:last-child {
@@ -2040,12 +2045,12 @@
         window.maskKey = (key) => key ? key.substring(0, 5) + '...' + key.substring(key.length - 4) : '';
 
         return `
-          <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="section-header" style="padding-top: 2px;">
             <span class="section-title">TinyPNG 账号池配置</span>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span class="section-hint" style="color: ${hasKey ? 'var(--text-secondary)' : 'var(--accent-red)'}">${hasKey ? `额度: ${totalUsed}/${totalQuota}` : '未配置'}</span>
+              <span class="section-hint" style="color: ${hasKey ? 'var(--text-sub)' : 'var(--accent-red)'}">${hasKey ? `额度: ${totalUsed}/${totalQuota}` : '未配置'}</span>
               ${hasKey ? `
-                <button onclick="refreshCompressQuotas(true)" style="background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 4px; display: flex; align-items: center; color: var(--text-tertiary);" title="从 TinyPNG 实时同步最新额度">
+                <button onclick="refreshCompressQuotas(true)" style="background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 4px; display: flex; align-items: center; color: var(--text-muted);" title="从 TinyPNG 实时同步最新额度">
                   <svg id="quota-refresh-svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="23 4 23 10 17 10"></polyline>
                     <polyline points="1 20 1 14 7 14"></polyline>
@@ -2056,52 +2061,60 @@
             </div>
           </div>
 
-          <div class="card-deck" style="padding: 10px 12px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-               <span style="font-size: 11.5px; font-weight: 500;">添加 API Key (可选)</span>
-               <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 10px;" onclick="testCompressApiKey()">保存并添加</button>
-            </div>
-            <div style="position: relative; display: flex; align-items: center; margin-bottom: 10px;">
-              <input id="tinypng-key-input" class="input-box" style="padding-right: 32px; width: 100%; box-sizing: border-box;" type="password" placeholder="不填则默认使用本地无网引擎" />
-              <div onclick="togglePasswordVisibility('tinypng-key-input', this)" style="position: absolute; right: 8px; cursor: pointer; color: var(--text-secondary); display: flex; opacity: 0.7;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
+          <div class="setting-group">
+            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11.5px; font-weight: 500; color: var(--text-main);">添加 API Key (可选)</span>
+                <button class="btn btn-secondary" style="padding: 2px 10px; font-size: 10.5px; height: 24px;" onclick="testCompressApiKey()">保存并添加</button>
               </div>
-            </div>
-            
-            ${hasKey ? `<div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 6px;">已激活账号池 (${keys.length})：</div>` : ''}
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-              ${keys.map((k, i) => `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px;">
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <span style="font-size: 11px; font-family: var(--font-mono);">${maskKey(k.key)}</span>
-                    <span style="font-size: 10px; color: ${(k.compressCount || 0) >= 500 ? 'var(--accent-red)' : 'var(--text-tertiary)'};">${k.compressCount || 0}/500</span>
-                  </div>
-                  <button onclick="removeCompressKey(${i})" style="background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 2px;">✕</button>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input id="tinypng-key-input" class="input-box" style="padding-right: 32px; width: 100%; box-sizing: border-box;" type="password" placeholder="不填则默认使用本地无网引擎" />
+                <div onclick="togglePasswordVisibility('tinypng-key-input', this)" style="position: absolute; right: 8px; cursor: pointer; color: var(--text-muted); display: flex;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
                 </div>
-              `).join('')}
+              </div>
+              
+              ${hasKey ? `
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">已激活账号池 (${keys.length})：</div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  ${keys.map((k, i) => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-muted); padding: 5px 8px; border-radius: 4px;">
+                      <div style="display: flex; gap: 8px; align-items: center;">
+                        <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-main);">${maskKey(k.key)}</span>
+                        <span style="font-size: 10px; color: ${(k.compressCount || 0) >= 500 ? 'var(--accent-red)' : 'var(--text-muted)'};">${k.compressCount || 0}/500</span>
+                      </div>
+                      <button onclick="removeCompressKey(${i})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px;">✕</button>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
             </div>
           </div>
 
-          <div class="setting-group" style="padding: 0 12px; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
-              <span style="font-size: 11.5px; font-weight: 500; color: var(--text-primary);">自定义文件夹名称</span>
+          <div class="section-header" style="padding-top: 4px;">
+            <span class="section-title">导出设置</span>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-row">
+              <span class="setting-label">自定义文件夹名称</span>
               <input class="input-box" style="width: 140px; font-size: 11px;" placeholder="默认: VolcBox_Export" value="${comp.zipName || ''}" onchange="setCompressFolder(this.value)" />
             </div>
             
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
-              <span style="font-size: 11.5px; font-weight: 500; color: var(--text-primary);">输出格式</span>
-              <div class="segmented-control" style="width: 140px;">
+            <div class="setting-row">
+              <span class="setting-label">输出格式</span>
+              <div class="segmented-control" style="width: 140px; margin: 0;">
                 <button class="segment-btn ${comp.exportFormat === 'PNG' ? 'active' : ''}" onclick="setCompressFormat('PNG')">PNG</button>
                 <button class="segment-btn ${comp.exportFormat === 'JPG' ? 'active' : ''}" onclick="setCompressFormat('JPG')">JPG</button>
               </div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-              <span style="font-size: 11.5px; font-weight: 500; color: var(--text-primary);">导出倍率</span>
-              <div class="segmented-control" style="width: 160px; display: flex;">
+            <div class="setting-row">
+              <span class="setting-label">导出倍率</span>
+              <div class="segmented-control" style="width: 160px; margin: 0; display: flex;">
                 <button class="segment-btn ${comp.exportScale == 1 ? 'active' : ''}" onclick="setCompressScale(1)">1x</button>
                 <button class="segment-btn ${comp.exportScale == 2 ? 'active' : ''}" onclick="setCompressScale(2)">2x</button>
                 <button class="segment-btn ${comp.exportScale == 3 ? 'active' : ''}" onclick="setCompressScale(3)">3x</button>
@@ -2111,14 +2124,13 @@
                          placeholder="自定"
                          value="${![1,2,3].includes(comp.exportScale) ? comp.exportScale : ''}" 
                          onchange="setCompressScale(parseFloat(this.value) || 2)" />
-                  <span style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-primary); pointer-events: none; display: ${![1,2,3].includes(comp.exportScale) ? 'block' : 'none'};">x</span>
+                  <span style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-main); pointer-events: none; display: ${![1,2,3].includes(comp.exportScale) ? 'block' : 'none'};">x</span>
                 </div>
               </div>
             </div>
-
           </div>
 
-          <div class="action-bar" style="margin-top: auto; padding-top: 12px;">
+          <div class="action-bar" style="margin-top: auto; padding: 8px 14px 2px 14px;">
             <button id="export-btn" class="btn btn-primary" style="flex: 1; position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center; padding: 0 14px;" onclick="startCompress()" ${state.selection.totalSelected === 0 || state.isCompressing ? 'disabled' : ''}>
               ${state.isCompressing ? `
                 <div id="btn-progress-fill" style="position: absolute; left: 0; top: 0; bottom: 0; width: ${state.compressProgress?.percent || 8}%; background: rgba(0, 0, 0, 0.22); transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; z-index: 1;"></div>
@@ -2195,9 +2207,13 @@
       tools() {
         const hasLocal = state.hasLocalService;
         return `
-          <div class="setting-group" style="border-top: none; margin-bottom: 6px;">
-            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: none;">
-              <span class="setting-label" style="font-size: 11.5px; font-weight: 500; color: var(--text-sub);">本地服务</span>
+          <div class="section-header" style="padding-top: 2px;">
+            <span class="section-title">本地服务助手</span>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-row">
+              <span class="setting-label">本地直拷服务</span>
               ${hasLocal ? `
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span style="font-size: 11px; color: var(--text-muted); cursor: pointer; text-decoration: underline;" onclick="uninstallLocalService()">卸载</span>
@@ -2210,47 +2226,49 @@
                 </div>
               `}
             </div>
+          </div>
 
-            <div style="border-top: 1px dashed var(--border-deck); margin: 0 12px;"></div>
+          <div class="section-header" style="padding-top: 4px;">
+            <span class="section-title">快捷设计工具</span>
+          </div>
 
-            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: none;">
+          <div class="setting-group">
+            <div class="setting-row">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">画布生成拼图（带标题）</span>
+                <span class="setting-label" style="font-weight: 600;">画布生成拼图（带标题）</span>
               </div>
               <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="executeCollage()" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>${hasLocal ? '复制' : '生成'}</button>
             </div>
 
-            <div style="border-top: 1px dashed var(--border-deck); margin: 0 12px;"></div>
-
-            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: 1px solid var(--border-subtle);">
+            <div class="setting-row">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">批量导出所选画板</span>
+                <span class="setting-label" style="font-weight: 600;">批量导出所选画板</span>
               </div>
               <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="executeBatchExport()" ${(!hasLocal || state.selection.totalSelected === 0) ? 'disabled' : ''} ${!hasLocal ? 'title="需安装并开启本地助手服务"' : ''}>复制</button>
             </div>
 
-            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: 1px solid var(--border-subtle);">
+            <div class="setting-row">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/><path d="M18 10l2 2-2 2"/><path d="M6 10l-2 2 2 2"/></svg>
-                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">文本固定行高转auto</span>
+                <span class="setting-label" style="font-weight: 600;">文本固定行高转auto</span>
               </div>
               <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="sendAction('line-height/fixed-to-auto')" ${state.selection.textNodeCount === 0 ? 'disabled' : ''}>执行</button>
             </div>
 
-            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: 1px solid var(--border-subtle);">
+            <div class="setting-row">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><polyline points="8 2 8 22"/></svg>
-                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">文本auto转固定行高</span>
+                <span class="setting-label" style="font-weight: 600;">文本auto转固定行高</span>
               </div>
               <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="sendAction('line-height/auto-to-pixels')" ${state.selection.textNodeCount === 0 ? 'disabled' : ''}>执行</button>
             </div>
 
-            <div class="setting-row" style="padding: 10px 12px; min-height: 42px; border-bottom: none;">
+            <div class="setting-row">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
-                <span class="setting-label" style="font-size: 12px; font-weight: 600; color: var(--text-main);">裁切PNG透明边缘</span>
+                <span class="setting-label" style="font-weight: 600;">裁切PNG透明边缘</span>
               </div>
               <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="sendAction('crop/trim-png')" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>执行</button>
             </div>
@@ -2305,13 +2323,13 @@
             <span class="section-title">账号与多端配置同步</span>
           </div>
 
-          <div class="card-deck" style="padding: 12px 14px; margin-bottom: 12px; background: var(--bg-deck); border: 1px solid var(--border-deck); border-radius: 10px;">
+          <div class="setting-group">
             ${isBound ? `
               <!-- 已绑定状态 -->
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <div class="setting-row">
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span style="font-size: 13px;">☁️</span>
-                  <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">云端配置同步中</span>
+                  <span class="setting-label">云端配置同步中</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
                   <span class="pulse-dot" style="width: 6px; height: 6px; background: var(--accent-green);"></span>
@@ -2319,7 +2337,7 @@
                 </div>
               </div>
               
-              <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-tertiary, rgba(0,0,0,0.03)); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px;">
+              <div class="setting-row" style="background: var(--bg-muted);">
                 <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
                   <span style="font-size: 10.5px; color: var(--text-sub); flex-shrink: 0;">密钥:</span>
                   <span style="font-size: 11px; font-family: var(--font-mono); font-weight: 600; color: var(--text-main); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${maskSyncKey(cloudSync.syncKey)}</span>
@@ -2327,41 +2345,47 @@
                 <button class="btn btn-secondary" onclick="copySyncKey('${cloudSync.syncKey}')" style="padding: 2px 8px; font-size: 10px; height: 22px; flex-shrink: 0;">📋 复制密钥</button>
               </div>
 
-              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--text-sub); margin-bottom: 10px;">
+              <div class="setting-row" style="font-size: 10px; color: var(--text-sub); justify-content: space-between; min-height: 28px;">
                 <span>上次同步: ${formatSyncTime(cloudSync.lastSyncTime)}</span>
                 <span>包含 Key / 词库 / 偏好等 6 项配置</span>
               </div>
 
-              <div style="display: flex; gap: 6px;">
+              <div class="setting-row" style="gap: 6px; padding: 8px 14px;">
                 <button class="btn btn-secondary" id="btn-push-sync" style="flex: 1; height: 26px; font-size: 10.5px;" onclick="pushSyncBackup()">⬆️ 立即备份</button>
                 <button class="btn btn-secondary" id="btn-pull-sync" style="flex: 1; height: 26px; font-size: 10.5px;" onclick="pullSyncBackup()">⬇️ 立即拉取</button>
                 <button class="btn btn-secondary" style="height: 26px; font-size: 10.5px; color: var(--accent-red); border-color: rgba(242,72,34,0.3);" onclick="unbindSyncKey()">解绑</button>
               </div>
             ` : `
               <!-- 未绑定状态 -->
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <div class="setting-row">
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span style="font-size: 13px;">☁️</span>
-                  <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">云端配置多端同步</span>
+                  <span class="setting-label">云端配置多端同步</span>
                 </div>
                 <span style="font-size: 10px; color: var(--text-sub); background: var(--bg-muted); padding: 2px 6px; border-radius: 4px; font-weight: 500;">跨设备免配置</span>
               </div>
-              <div style="font-size: 10.5px; color: var(--text-sub); line-height: 1.4; margin-bottom: 10px;">
-                绑定同步密钥/激活码，换设备一键恢复所有 API Key、TinyPNG 池与词库偏好。
-              </div>
-              <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-                <input class="input-box" id="input-sync-key" placeholder="输入已有密钥 (如 VB-xxxx...)" style="flex: 1; height: 28px; font-size: 11px; font-family: var(--font-mono);" />
-                <button class="btn btn-primary" id="btn-bind-sync" style="height: 28px; padding: 0 12px; font-size: 11px; flex-shrink: 0;" onclick="bindSyncKey()">绑定并同步</button>
-              </div>
-              <div style="display: flex; justify-content: flex-end;">
-                <button onclick="createSyncKey()" style="background: none; border: none; font-size: 10.5px; color: var(--accent-blue); cursor: pointer; text-decoration: underline; padding: 0;">✨ 首次使用？一键创建新密钥并备份</button>
+              <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 14px;">
+                <div style="font-size: 10.5px; color: var(--text-sub); line-height: 1.4;">
+                  绑定同步密钥/激活码，换设备一键恢复所有 API Key、TinyPNG 池与词库偏好。
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <input class="input-box" id="input-sync-key" placeholder="输入已有密钥 (如 VB-xxxx...)" style="flex: 1; height: 28px; font-size: 11px; font-family: var(--font-mono);" />
+                  <button class="btn btn-primary" id="btn-bind-sync" style="height: 28px; padding: 0 12px; font-size: 11px; flex-shrink: 0;" onclick="bindSyncKey()">绑定并同步</button>
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button onclick="createSyncKey()" style="background: none; border: none; font-size: 10.5px; color: var(--accent-blue); cursor: pointer; text-decoration: underline; padding: 0;">✨ 首次使用？一键创建新密钥并备份</button>
+                </div>
               </div>
             `}
           </div>
 
           <!-- 1. 官方免费通道状态卡片 -->
-          <div class="setting-group" style="border-top: none; margin-bottom: 8px;">
-            <div class="setting-row" style="padding: 10px 12px; min-height: 44px; border-bottom: none;">
+          <div class="section-header" style="padding-top: 4px;">
+            <span class="section-title">官方免费通道</span>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-row" style="padding: 10px 14px; min-height: 44px; border-bottom: none;">
               <div style="display: flex; flex-direction: column; gap: 2px;">
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span class="status-indicator-dot"></span>
@@ -2376,7 +2400,7 @@
             </div>
 
             <!-- 异常状态与排查建议（动态展开） -->
-            <div id="free-channel-error-box" style="display: none; margin: 0 12px 10px 12px; padding: 8px 10px; background: rgba(255, 69, 58, 0.06); border: 1px solid rgba(255, 69, 58, 0.2); border-radius: 6px;">
+            <div id="free-channel-error-box" style="display: none; margin: 0 14px 10px 14px; padding: 8px 10px; background: rgba(255, 69, 58, 0.06); border: 1px solid rgba(255, 69, 58, 0.2); border-radius: 6px;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
                 <span style="font-size: 11px; font-weight: 600; color: var(--accent-red);">⚠️ 免费通道连接受阻</span>
                 <span style="font-size: 10px; color: var(--accent-red); cursor: pointer; text-decoration: underline;" onclick="checkFreeChannelHealth()">重新检测</span>
@@ -2392,10 +2416,10 @@
             <span class="section-title">自定义 AI 大模型（可选）</span>
           </div>
 
-          <div class="setting-group" style="margin-bottom: 8px;">
+          <div class="setting-group">
             <!-- Row 1: 服务商预设 -->
-            <div class="setting-row" style="padding: 8px 12px;">
-              <span class="setting-label" style="font-size: 11.5px; font-weight: 500; min-width: 65px;">服务商</span>
+            <div class="setting-row">
+              <span class="setting-label" style="min-width: 65px;">服务商</span>
               <div class="select-wrapper" style="max-width: 220px;">
                 <select class="select-custom" id="llm-provider-select" onchange="onLlmProviderChange(this.value)">
                   <option value="deepseek" ${currentPreset === 'deepseek' ? 'selected' : ''}>DeepSeek AI (官方推荐)</option>
@@ -2412,9 +2436,9 @@
             </div>
 
             <!-- Row 2: API Key -->
-            <div class="setting-row" style="padding: 8px 12px;">
+            <div class="setting-row">
               <div class="setting-label-group" style="min-width: 65px;">
-                <span class="setting-label" style="font-size: 11.5px; font-weight: 500;">API Key</span>
+                <span class="setting-label">API Key</span>
                 <span class="setting-sublabel" style="font-size: 9.5px;">本地存储</span>
               </div>
               <div class="input-with-action" style="max-width: 220px;">
@@ -2430,9 +2454,9 @@
             </div>
 
             <!-- Row 3: 模型名称 (组合下拉框) -->
-            <div class="setting-row" style="padding: 8px 12px;">
+            <div class="setting-row">
               <div class="setting-label-group" style="min-width: 65px;">
-                <span class="setting-label" style="font-size: 11.5px; font-weight: 500;">模型名称</span>
+                <span class="setting-label">模型名称</span>
                 <span class="setting-sublabel" style="font-size: 9.5px;">可选或输入</span>
               </div>
               <div style="position: relative; width: 100%; max-width: 220px;">
@@ -2444,13 +2468,13 @@
             </div>
 
             <!-- Row 4: 接口地址 -->
-            <div class="setting-row" style="padding: 8px 12px;">
-              <span class="setting-label" style="font-size: 11.5px; font-weight: 500; min-width: 65px;">接口地址</span>
+            <div class="setting-row">
+              <span class="setting-label" style="min-width: 65px;">接口地址</span>
               <input class="input-box" type="text" id="custom-base-url" placeholder="https://api.deepseek.com" value="${custom.baseUrl || ''}" oninput="updateCustomLlmField('baseUrl', this.value)" style="height: 28px; font-size: 11px; font-family: var(--font-mono); max-width: 220px;" />
             </div>
 
             <!-- Row 5: 底部测试连接与状态 -->
-            <div class="setting-row" style="padding: 10px 12px; min-height: 44px; border-bottom: none;">
+            <div class="setting-row" style="padding: 10px 14px; min-height: 44px; border-bottom: none;">
               <div id="llm-test-status" style="font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">
                 ${custom.testResult ? custom.testResult : '输入 Key 后点击测试连接'}
               </div>
