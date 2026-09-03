@@ -173,28 +173,37 @@ const MockupViews = {
       </div>
 
       <div class="mockup-setting-group">
-        <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px;">
-            <span>色相 (Hue)</span>
-            <span id="mockup-hue-val" style="font-family: var(--font-mono); font-weight: 600;">+15°</span>
+        <div class="slider-row">
+          <div class="slider-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 500;">色相 (Hue)</span>
+            <div style="display: inline-flex; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 0 4px 0 2px; height: 20px;">
+              <input type="number" id="mockup-num-hue" min="-180" max="180" value="15" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-hue').value = this.value;" />
+              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-sub);">°</span>
+            </div>
           </div>
-          <input type="range" min="-180" max="180" value="15" style="width: 100%; accent-color: var(--accent-red);" oninput="document.getElementById('mockup-hue-val').innerText = (this.value > 0 ? '+' : '') + this.value + '°'" />
+          <input type="range" id="mockup-range-hue" min="-180" max="180" value="15" style="width: 100%; accent-color: var(--accent-red); margin-top: 4px;" oninput="document.getElementById('mockup-num-hue').value = this.value;" />
         </div>
 
-        <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px;">
-            <span>饱和度 (Saturation)</span>
-            <span id="mockup-sat-val" style="font-family: var(--font-mono); font-weight: 600;">+10%</span>
+        <div class="slider-row">
+          <div class="slider-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 500;">饱和度 (Saturation)</span>
+            <div style="display: inline-flex; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 0 4px 0 2px; height: 20px;">
+              <input type="number" id="mockup-num-sat" min="-100" max="100" value="10" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-sat').value = this.value;" />
+              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-sub);">%</span>
+            </div>
           </div>
-          <input type="range" min="-100" max="100" value="10" style="width: 100%; accent-color: var(--accent-red);" oninput="document.getElementById('mockup-sat-val').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" />
+          <input type="range" id="mockup-range-sat" min="-100" max="100" value="10" style="width: 100%; accent-color: var(--accent-red); margin-top: 4px;" oninput="document.getElementById('mockup-num-sat').value = this.value;" />
         </div>
 
-        <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px;">
-            <span>明度 (Lightness)</span>
-            <span id="mockup-lit-val" style="font-family: var(--font-mono); font-weight: 600;">0%</span>
+        <div class="slider-row">
+          <div class="slider-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 500;">明度 (Lightness)</span>
+            <div style="display: inline-flex; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 0 4px 0 2px; height: 20px;">
+              <input type="number" id="mockup-num-lit" min="-100" max="100" value="0" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-lit').value = this.value;" />
+              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--text-sub);">%</span>
+            </div>
           </div>
-          <input type="range" min="-100" max="100" value="0" style="width: 100%; accent-color: var(--accent-red);" oninput="document.getElementById('mockup-lit-val').innerText = (this.value > 0 ? '+' : '') + this.value + '%'" />
+          <input type="range" id="mockup-range-lit" min="-100" max="100" value="0" style="width: 100%; accent-color: var(--accent-red); margin-top: 4px;" oninput="document.getElementById('mockup-num-lit').value = this.value;" />
         </div>
       </div>
 

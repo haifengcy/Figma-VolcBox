@@ -675,17 +675,94 @@
       width: 100%;
       padding: 4px 0;
     }
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 6px 0;
+      user-select: none;
+    }
+    .slider-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .slider-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    .slider-val-box {
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 0 4px 0 2px;
+      height: 20px;
+      transition: all 0.15s ease;
+    }
+    .slider-val-box:hover {
+      border-color: var(--border-chassis);
+      background: var(--bg-hover);
+    }
+    .slider-val-box:focus-within {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 0 2px rgba(255, 85, 0, 0.15);
+      background: var(--bg-surface);
+    }
+    .slider-num-input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
+      width: 34px;
+      text-align: right;
+      padding: 0 1px 0 0;
+      margin: 0;
+      -moz-appearance: textfield;
+    }
+    .slider-num-input::-webkit-outer-spin-button,
+    .slider-num-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .slider-val-unit {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-sub);
+      user-select: none;
+      pointer-events: none;
+    }
+    .slider-track-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 18px;
+      cursor: pointer;
+    }
     .slider-input {
       -webkit-appearance: none;
       appearance: none;
-      flex: 1;
-      height: 4px;
-      background: rgba(0, 0, 0, 0.08);
-      border-radius: 2px;
+      width: 100%;
+      height: 6px;
+      background: var(--bg-hover);
+      border-radius: 3px;
       outline: none;
       cursor: pointer;
       touch-action: none;
-      margin: 6px 0;
+      margin: 0;
+      border: 1px solid var(--border-subtle);
+      transition: background 0.15s ease;
+    }
+    .slider-input:hover {
+      background: var(--bg-active);
     }
     .slider-input::-webkit-slider-thumb {
       -webkit-appearance: none;
@@ -695,12 +772,21 @@
       border-radius: 50%;
       background: var(--accent-red);
       cursor: grab;
-      border: 1px solid rgba(0,0,0,0.1);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    body.theme-dark .slider-input::-webkit-slider-thumb {
+      border: 2px solid #171922;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+    .slider-input:hover::-webkit-slider-thumb {
+      transform: scale(1.15);
     }
     .slider-input:active::-webkit-slider-thumb {
       cursor: grabbing;
-      box-shadow: 0 1px 4px rgba(242, 72, 34, 0.35);
+      transform: scale(1.22);
+      box-shadow: 0 0 0 4px rgba(255, 85, 0, 0.25);
     }
     .status-banner {
       display: flex;
@@ -2175,26 +2261,64 @@
           </div>
 
           <div class="setting-group">
-            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
-              <div style="display: flex; justify-content: space-between;">
-                <span class="setting-label">色相 (Hue)</span>
-                <span id="val-hue" style="font-family: var(--font-mono); font-size: 11px; font-weight: 600;">${state.hue > 0 ? '+' : ''}${state.hue}°</span>
+            <div class="slider-row" onwheel="handleColorWheel(event, 'hue')" ondblclick="resetColorProp('hue')">
+              <div class="slider-header">
+                <span class="slider-label">色相 (Hue)</span>
+                <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
+                  <input type="number" id="num-hue" class="slider-num-input" min="-180" max="180" step="1" value="${state.hue}" 
+                         oninput="updateColorFromInput('hue', this.value)" 
+                         onchange="validateColorInput('hue', this)" 
+                         onkeydown="handleColorInputKey(event, 'hue', this)" 
+                         onfocus="this.select()" />
+                  <span class="slider-val-unit">°</span>
+                </div>
               </div>
-              <input type="range" id="slider-hue" class="slider-input" min="-180" max="180" value="${state.hue}" oninput="updateColor('hue', this.value)" onkeydown="event.stopPropagation()" />
+              <div class="slider-track-wrap">
+                <input type="range" id="slider-hue" class="slider-input" min="-180" max="180" value="${state.hue}" 
+                       oninput="updateColor('hue', this.value)" 
+                       onwheel="handleColorWheel(event, 'hue')"
+                       onkeydown="event.stopPropagation()" />
+              </div>
             </div>
-            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
-              <div style="display: flex; justify-content: space-between;">
-                <span class="setting-label">饱和度 (Saturation)</span>
-                <span id="val-saturation" style="font-family: var(--font-mono); font-size: 11px; font-weight: 600;">${state.saturation > 0 ? '+' : ''}${state.saturation}%</span>
+
+            <div class="slider-row" onwheel="handleColorWheel(event, 'saturation')" ondblclick="resetColorProp('saturation')">
+              <div class="slider-header">
+                <span class="slider-label">饱和度 (Saturation)</span>
+                <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
+                  <input type="number" id="num-saturation" class="slider-num-input" min="-100" max="100" step="1" value="${state.saturation}" 
+                         oninput="updateColorFromInput('saturation', this.value)" 
+                         onchange="validateColorInput('saturation', this)" 
+                         onkeydown="handleColorInputKey(event, 'saturation', this)" 
+                         onfocus="this.select()" />
+                  <span class="slider-val-unit">%</span>
+                </div>
               </div>
-              <input type="range" id="slider-saturation" class="slider-input" min="-100" max="100" value="${state.saturation}" oninput="updateColor('saturation', this.value)" onkeydown="event.stopPropagation()" />
+              <div class="slider-track-wrap">
+                <input type="range" id="slider-saturation" class="slider-input" min="-100" max="100" value="${state.saturation}" 
+                       oninput="updateColor('saturation', this.value)" 
+                       onwheel="handleColorWheel(event, 'saturation')"
+                       onkeydown="event.stopPropagation()" />
+              </div>
             </div>
-            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
-              <div style="display: flex; justify-content: space-between;">
-                <span class="setting-label">明度 (Lightness)</span>
-                <span id="val-lightness" style="font-family: var(--font-mono); font-size: 11px; font-weight: 600;">${state.lightness > 0 ? '+' : ''}${state.lightness}%</span>
+
+            <div class="slider-row" onwheel="handleColorWheel(event, 'lightness')" ondblclick="resetColorProp('lightness')">
+              <div class="slider-header">
+                <span class="slider-label">明度 (Lightness)</span>
+                <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
+                  <input type="number" id="num-lightness" class="slider-num-input" min="-100" max="100" step="1" value="${state.lightness}" 
+                         oninput="updateColorFromInput('lightness', this.value)" 
+                         onchange="validateColorInput('lightness', this)" 
+                         onkeydown="handleColorInputKey(event, 'lightness', this)" 
+                         onfocus="this.select()" />
+                  <span class="slider-val-unit">%</span>
+                </div>
               </div>
-              <input type="range" id="slider-lightness" class="slider-input" min="-100" max="100" value="${state.lightness}" oninput="updateColor('lightness', this.value)" onkeydown="event.stopPropagation()" />
+              <div class="slider-track-wrap">
+                <input type="range" id="slider-lightness" class="slider-input" min="-100" max="100" value="${state.lightness}" 
+                       oninput="updateColor('lightness', this.value)" 
+                       onwheel="handleColorWheel(event, 'lightness')"
+                       onkeydown="event.stopPropagation()" />
+              </div>
             </div>
           </div>
 
@@ -2889,12 +3013,79 @@ echo "=========================================="
     };
 
     window.updateColor = function(prop, val) {
-      state[prop] = parseInt(val, 10);
-      const valEl = document.getElementById('val-' + prop);
-      if (valEl) {
-        valEl.textContent = (state[prop] > 0 ? '+' : '') + state[prop] + (prop === 'hue' ? '°' : '%');
-      }
+      let num = parseInt(val, 10);
+      if (isNaN(num)) num = 0;
+      const min = prop === 'hue' ? -180 : -100;
+      const max = prop === 'hue' ? 180 : 100;
+      num = Math.max(min, Math.min(max, num));
+      state[prop] = num;
+
+      const sliderEl = document.getElementById('slider-' + prop);
+      if (sliderEl && sliderEl.value != num) sliderEl.value = num;
+
+      const numEl = document.getElementById('num-' + prop);
+      if (numEl && document.activeElement !== numEl && numEl.value != num) numEl.value = num;
+
       window.sendColorPreview();
+    };
+
+    window.updateColorFromInput = function(prop, val) {
+      if (val === '' || val === '-') return;
+      let num = parseInt(val, 10);
+      if (isNaN(num)) return;
+      const min = prop === 'hue' ? -180 : -100;
+      const max = prop === 'hue' ? 180 : 100;
+      num = Math.max(min, Math.min(max, num));
+      state[prop] = num;
+
+      const sliderEl = document.getElementById('slider-' + prop);
+      if (sliderEl && sliderEl.value != num) sliderEl.value = num;
+
+      window.sendColorPreview();
+    };
+
+    window.validateColorInput = function(prop, inputEl) {
+      let num = parseInt(inputEl.value, 10);
+      if (isNaN(num)) num = 0;
+      const min = prop === 'hue' ? -180 : -100;
+      const max = prop === 'hue' ? 180 : 100;
+      num = Math.max(min, Math.min(max, num));
+      inputEl.value = num;
+      window.updateColor(prop, num);
+    };
+
+    window.handleColorInputKey = function(event, prop, inputEl) {
+      event.stopPropagation();
+      if (event.key === 'Enter') {
+        inputEl.blur();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const step = event.shiftKey ? 10 : 1;
+        window.updateColor(prop, (state[prop] || 0) + step);
+        inputEl.value = state[prop];
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const step = event.shiftKey ? 10 : 1;
+        window.updateColor(prop, (state[prop] || 0) - step);
+        inputEl.value = state[prop];
+      }
+    };
+
+    window.handleColorWheel = function(event, prop) {
+      event.preventDefault();
+      event.stopPropagation();
+      const step = event.shiftKey ? 5 : 1;
+      const delta = (event.deltaY < 0 || event.deltaX > 0) ? step : -step;
+      const current = state[prop] || 0;
+      window.updateColor(prop, current + delta);
+      const numEl = document.getElementById('num-' + prop);
+      if (numEl) numEl.value = state[prop];
+    };
+
+    window.resetColorProp = function(prop) {
+      window.updateColor(prop, 0);
+      const numEl = document.getElementById('num-' + prop);
+      if (numEl) numEl.value = 0;
     };
 
     window.sendColorPreview = function() {
@@ -2936,19 +3127,12 @@ echo "=========================================="
       state.saturation = 0;
       state.lightness = 0;
       
-      const hInput = document.getElementById('slider-hue');
-      const sInput = document.getElementById('slider-saturation');
-      const lInput = document.getElementById('slider-lightness');
-      if (hInput) hInput.value = 0;
-      if (sInput) sInput.value = 0;
-      if (lInput) lInput.value = 0;
-      
-      const hVal = document.getElementById('val-hue');
-      const sVal = document.getElementById('val-saturation');
-      const lVal = document.getElementById('val-lightness');
-      if (hVal) hVal.textContent = '0°';
-      if (sVal) sVal.textContent = '0%';
-      if (lVal) lVal.textContent = '0%';
+      ['hue', 'saturation', 'lightness'].forEach(prop => {
+        const slider = document.getElementById('slider-' + prop);
+        const num = document.getElementById('num-' + prop);
+        if (slider) slider.value = 0;
+        if (num) num.value = 0;
+      });
       
       parent.postMessage({ pluginMessage: { type: 'color/reset' } }, '*');
     };
@@ -2964,19 +3148,12 @@ echo "=========================================="
       state.saturation = 0;
       state.lightness = 0;
       
-      const hInput = document.getElementById('slider-hue');
-      const sInput = document.getElementById('slider-saturation');
-      const lInput = document.getElementById('slider-lightness');
-      if (hInput) hInput.value = 0;
-      if (sInput) sInput.value = 0;
-      if (lInput) lInput.value = 0;
-      
-      const hVal = document.getElementById('val-hue');
-      const sVal = document.getElementById('val-saturation');
-      const lVal = document.getElementById('val-lightness');
-      if (hVal) hVal.textContent = '0°';
-      if (sVal) sVal.textContent = '0%';
-      if (lVal) lVal.textContent = '0%';
+      ['hue', 'saturation', 'lightness'].forEach(prop => {
+        const slider = document.getElementById('slider-' + prop);
+        const num = document.getElementById('num-' + prop);
+        if (slider) slider.value = 0;
+        if (num) num.value = 0;
+      });
     };
 
     // Tools & Settings methods
