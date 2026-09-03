@@ -2594,13 +2594,13 @@ const Handlers = {
     const { baseHex, targetHex, scope = 'all' } = payload || {};
     const targetNodes = getAllColorNodes(figma.currentPage.selection);
     if (!targetNodes || targetNodes.length === 0) {
-      figma.notify('请先在画布上选中需要调整色调的设计内容', { error: true });
+      figma.notify('请先在画布上选中需要换色的设计内容', { error: true });
       return;
     }
 
     const targetRgb = hexToRgb01(targetHex);
     if (!targetRgb) {
-      figma.notify('未能识别吸取的颜色色值', { error: true });
+      figma.notify('未能识别目标颜色色值', { error: true });
       return;
     }
 
@@ -2646,8 +2646,8 @@ const Handlers = {
       if (nodeModified) modifiedCount++;
     }
 
-    figma.notify(`✨ 选中设计已自动匹配至 ${targetHex.toUpperCase()} 整体色调`);
-    sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: `已自动匹配 ${targetHex} 整体色调` } });
+    figma.notify(`✨ 选中设计已自适应切换至 ${targetHex.toUpperCase()} 整体色调`);
+    sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: `已自适应切换至 ${targetHex} 整体色调` } });
     sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 };

@@ -763,6 +763,31 @@
     .brand-swatch-dot:active {
       transform: scale(0.92);
     }
+    .tone-preset-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 5px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-deck);
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .tone-preset-pill:hover {
+      border-color: var(--accent-red);
+      background: var(--bg-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+    }
+    .tone-preset-pill:active {
+      transform: translateY(0);
+      background: var(--bg-active);
+    }
     .slider-num-input {
       border: none;
       background: transparent;
@@ -2316,50 +2341,111 @@
             <button class="segment-btn ${state.colorScope === 'stroke' ? 'active' : ''}" onclick="setColorScope('stroke')">仅描边</button>
           </div>
 
-          <div class="section-header" style="padding-top: 4px;">
-            <span class="section-title">智能吸色整体调色</span>
-            <span class="section-hint">吸取画板色彩 ➔ 选区自动匹配整案色调</span>
+          <div class="section-header" style="padding-top: 4px; justify-content: space-between; align-items: center;">
+            <span class="section-title">快速预设色调 (一键全案自适应)</span>
+            <span class="section-hint">点击即刻全案自适应换色</span>
           </div>
 
-          <div class="setting-group" style="margin-bottom: 8px;">
-            <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; border-bottom: 1px solid var(--border-subtle);">
-              <button class="btn btn-primary" style="height: 38px; width: 100%; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 7px; box-shadow: 0 2px 8px rgba(255, 85, 0, 0.22); cursor: pointer;" onclick="pickThemeToneColor()" ${!state.selection?.colorLayerCount ? 'disabled' : ''}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2l4 4-8.5 8.5-4-4L14 2z"/>
-                  <path d="M5.5 14.5l-2.5 5 5-2.5"/>
-                  <circle cx="18" cy="6" r="1"/>
-                </svg>
-                <span>点击吸色（吸取画板色彩，选区自动匹配整体色调）</span>
-              </button>
-
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 10.5px; color: var(--text-muted);">识别选区主色:</span>
-                  <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-deck);">
-                    <div style="width: 12px; height: 12px; border-radius: 2px; background-color: ${state.sourceReplaceColor || (state.selection?.dominantColor?.hex || '#327FFF')};"></div>
-                    <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">${state.sourceReplaceColor || (state.selection?.dominantColor?.hex || '#327FFF')}</span>
-                  </div>
+          <div class="setting-group" style="margin-bottom: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 9px;">
+            <!-- Group 1: 经典科技与主流品牌 -->
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; margin-bottom: 5px;">经典科技 & 品牌主流</div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <div class="tone-preset-pill" onclick="quickApplyTone('#FF5500')" title="火山橙 #FF5500 - 火山引擎经典橙">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #FF5500;"></div>
+                  <span>火山橙</span>
                 </div>
-
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 10.5px; color: var(--text-muted);">最近匹配色调:</span>
-                  <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-deck);">
-                    <div id="target-replace-swatch" style="width: 12px; height: 12px; border-radius: 2px; background-color: ${state.targetReplaceColor || '#7000FF'}; cursor: pointer;" onclick="pickThemeToneColor()" title="点击吸色"></div>
-                    <span id="target-replace-hex-text" style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">${state.targetReplaceColor || '#7000FF'}</span>
-                  </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#165DFF')" title="科技蓝 #165DFF - Arco / 飞书科技蓝">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #165DFF;"></div>
+                  <span>科技蓝</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#0052D9')" title="商务蓝 #0052D9 - 腾讯稳重商务蓝">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #0052D9;"></div>
+                  <span>商务蓝</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#0066CC')" title="极客蓝 #0066CC - 经典系统蓝">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #0066CC;"></div>
+                  <span>极客蓝</span>
                 </div>
               </div>
             </div>
 
-            <div class="setting-row" style="padding: 7px 14px; align-items: center; justify-content: space-between; background-color: var(--bg-hover);">
-              <span style="font-size: 10px; color: var(--text-muted); font-weight: 500;">快速体验预设色调:</span>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="brand-swatch-dot" style="background-color: #FF5500;" onclick="quickApplyTone('#FF5500')" title="火山橙 #FF5500"></div>
-                <div class="brand-swatch-dot" style="background-color: #0066CC;" onclick="quickApplyTone('#0066CC')" title="科技蓝 #0066CC"></div>
-                <div class="brand-swatch-dot" style="background-color: #30D158;" onclick="quickApplyTone('#30D158')" title="生机绿 #30D158"></div>
-                <div class="brand-swatch-dot" style="background-color: #7000FF;" onclick="quickApplyTone('#7000FF')" title="紫罗兰 #7000FF"></div>
-                <div class="brand-swatch-dot" style="background-color: #FFB800;" onclick="quickApplyTone('#FFB800')" title="日落金 #FFB800"></div>
-                <div class="brand-swatch-dot" style="background-color: #1D1A16;" onclick="quickApplyTone('#1D1A16')" title="极客黑 #1D1A16"></div>
+            <!-- Group 2: 清新自然 & 健康生态 -->
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; margin-bottom: 5px;">清新自然 & 健康生态</div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <div class="tone-preset-pill" onclick="quickApplyTone('#00B42A')" title="生机绿 #00B42A - 活力与成功">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #00B42A;"></div>
+                  <span>生机绿</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#14C9C9')" title="薄荷青 #14C9C9 - 清新科技青">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #14C9C9;"></div>
+                  <span>薄荷青</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#10B981')" title="森林绿 #10B981 - 自然环保绿">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #10B981;"></div>
+                  <span>森林绿</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#0A9655')" title="稳健绿 #0A9655 - 微信安全绿色">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #0A9655;"></div>
+                  <span>稳健绿</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 3: 潮流创意 & 时尚娱乐 -->
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; margin-bottom: 5px;">潮流创意 & 时尚娱乐</div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <div class="tone-preset-pill" onclick="quickApplyTone('#722ED1')" title="极光紫 #722ED1 - AI与未来创意">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #722ED1;"></div>
+                  <span>极光紫</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#8B5CF6')" title="丁香紫 #8B5CF6 - 轻奢温润紫">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #8B5CF6;"></div>
+                  <span>丁香紫</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#EB2F96')" title="洋红粉 #EB2F96 - 时尚年轻美妆">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #EB2F96;"></div>
+                  <span>洋红粉</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#F53F3F')" title="赤焰红 #F53F3F - 热烈警示红">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #F53F3F;"></div>
+                  <span>赤焰红</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 4: 温暖阳光 & 高级极简 -->
+            <div>
+              <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; margin-bottom: 5px;">温暖阳光 & 高级极简</div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <div class="tone-preset-pill" onclick="quickApplyTone('#F7BA1E')" title="日落金 #F7BA1E - 会员尊贵暖金">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #F7BA1E;"></div>
+                  <span>日落金</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#FF7D00')" title="暖阳橙 #FF7D00 - 亲和餐饮橙">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #FF7D00;"></div>
+                  <span>暖阳橙</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#1D2129')" title="极客黑 #1D2129 - 暗黑科技黑">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #1D2129;"></div>
+                  <span>极客黑</span>
+                </div>
+                <div class="tone-preset-pill" onclick="quickApplyTone('#8D6E63')" title="大地咖 #8D6E63 - 拿铁人文质感">
+                  <div style="width: 12px; height: 12px; border-radius: 2.5px; background: #8D6E63;"></div>
+                  <span>大地咖</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Hex Input Row -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border-subtle); margin-top: 2px;">
+              <span style="font-size: 10px; color: var(--text-muted); font-weight: 500;">自定义色值:</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="color" id="custom-tone-color-picker" value="#FF5500" style="width: 20px; height: 20px; border: none; padding: 0; background: none; cursor: pointer; border-radius: 3px;" onchange="document.getElementById('custom-tone-hex').value = this.value.toUpperCase(); quickApplyTone(this.value);" />
+                <input type="text" id="custom-tone-hex" class="slider-num-input" style="width: 68px; text-align: left; padding: 0 5px; height: 22px; font-size: 10.5px; font-family: var(--font-mono); background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 3px;" value="#FF5500" onchange="document.getElementById('custom-tone-color-picker').value = this.value; quickApplyTone(this.value);" />
+                <button class="btn btn-primary" style="height: 22px; padding: 0 8px; font-size: 10.5px;" onclick="quickApplyTone(document.getElementById('custom-tone-hex').value)">应用</button>
               </div>
             </div>
           </div>
@@ -3396,10 +3482,10 @@ echo "=========================================="
       }
       state.targetReplaceColor = target;
       state.lastSampledTone = target;
-      const swatch = document.getElementById('target-replace-swatch');
-      if (swatch) swatch.style.backgroundColor = target;
-      const hexText = document.getElementById('target-replace-hex-text');
-      if (hexText) hexText.textContent = target;
+      const hexInput = document.getElementById('custom-tone-hex');
+      if (hexInput) hexInput.value = target;
+      const colorPicker = document.getElementById('custom-tone-color-picker');
+      if (colorPicker && /^#[0-9A-F]{6}$/i.test(target)) colorPicker.value = target;
 
       parent.postMessage({
         pluginMessage: {

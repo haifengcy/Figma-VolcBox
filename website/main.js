@@ -167,48 +167,45 @@ const MockupViews = {
 
   color() {
     return `
-      <div class="mockup-section-header" style="padding-top: 4px;">
-        <span class="mockup-section-title">智能吸色整体调色</span>
-        <span class="mockup-section-hint">吸取画板色彩 ➔ 选区自动匹配整案色调</span>
+      <div class="mockup-section-header" style="padding-top: 4px; justify-content: space-between; align-items: center;">
+        <span class="mockup-section-title">快速预设色调 (一键全案自适应)</span>
+        <span class="mockup-section-hint">自适应换色</span>
       </div>
 
-      <div class="mockup-setting-group" style="margin-bottom: 8px;">
-        <div style="padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--border-subtle);">
-          <button class="mockup-btn-primary" style="height: 34px; width: 100%; font-size: 11.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2l4 4-8.5 8.5-4-4L14 2z"/>
-              <path d="M5.5 14.5l-2.5 5 5-2.5"/>
-              <circle cx="18" cy="6" r="1"/>
-            </svg>
-            <span>点击吸色（吸取画板色彩，自动匹配整体色调）</span>
-          </button>
-
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span style="font-size: 10px; color: var(--text-muted);">选区主色:</span>
-              <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--bg-hover); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border-deck);">
-                <div style="width: 10px; height: 10px; border-radius: 2px; background: #327FFF;"></div>
-                <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#327FFF</span>
-              </div>
-            </div>
-
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span style="font-size: 10px; color: var(--text-muted);">最近吸取:</span>
-              <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--bg-hover); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border-deck);">
-                <div id="mockup-swatch" style="width: 10px; height: 10px; border-radius: 2px; background: #7000FF;"></div>
-                <span id="mockup-hex-text" style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#7000FF</span>
-              </div>
-            </div>
+      <div class="mockup-setting-group" style="margin-bottom: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 7px;">
+        <div style="font-size: 9.5px; color: var(--text-muted); font-weight: 600;">经典品牌与设计系统</div>
+        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+          <div class="tone-preset-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-deck); font-size: 9.5px; cursor: pointer;">
+            <div style="width: 10px; height: 10px; border-radius: 2px; background: #FF5500;"></div>
+            <span>火山橙</span>
           </div>
-        </div>
-
-        <div class="mockup-setting-row" style="padding: 6px 14px; align-items: center; justify-content: space-between; background-color: var(--bg-hover);">
-          <span style="font-size: 9.5px; color: var(--text-muted); font-weight: 500;">快速预设:</span>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div class="brand-swatch-dot" style="width: 14px; height: 14px; border-radius: 50%; background: #FF5500; cursor: pointer;" onclick="document.getElementById('mockup-swatch').style.backgroundColor = '#FF5500'; document.getElementById('mockup-hex-text').textContent = '#FF5500';"></div>
-            <div class="brand-swatch-dot" style="width: 14px; height: 14px; border-radius: 50%; background: #0066CC; cursor: pointer;" onclick="document.getElementById('mockup-swatch').style.backgroundColor = '#0066CC'; document.getElementById('mockup-hex-text').textContent = '#0066CC';"></div>
-            <div class="brand-swatch-dot" style="width: 14px; height: 14px; border-radius: 50%; background: #30D158; cursor: pointer;" onclick="document.getElementById('mockup-swatch').style.backgroundColor = '#30D158'; document.getElementById('mockup-hex-text').textContent = '#30D158';"></div>
-            <div class="brand-swatch-dot" style="width: 14px; height: 14px; border-radius: 50%; background: #7000FF; cursor: pointer;" onclick="document.getElementById('mockup-swatch').style.backgroundColor = '#7000FF'; document.getElementById('mockup-hex-text').textContent = '#7000FF';"></div>
+          <div class="tone-preset-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-deck); font-size: 9.5px; cursor: pointer;">
+            <div style="width: 10px; height: 10px; border-radius: 2px; background: #165DFF;"></div>
+            <span>科技蓝</span>
+          </div>
+          <div class="tone-preset-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-deck); font-size: 9.5px; cursor: pointer;">
+            <div style="width: 10px; height: 10px; border-radius: 2px; background: #00B42A;"></div>
+            <span>生机绿</span>
+          </div>
+          <div class="tone-preset-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-deck); font-size: 9.5px; cursor: pointer;">
+            <div style="width: 10px; height: 10px; border-radius: 2px; background: #14C9C9;"></div>
+            <span>薄荷青</span>
+          </div>
+          <div class="tone-preset-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-deck); font-size: 9.5px; cursor: pointer;">
+            <div style="width: 10px; height: 10px; border-radius: 2px; background: #722ED1;"></div>
+            <span>极光紫</span>
+          </div>
+          <div class="tone-preset-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-deck); font-size: 9.5px; cursor: pointer;">
+            <div style="width: 10px; height: 10px; border-radius: 2px; background: #F7BA1E;"></div>
+            <span>日落金</span>
+          </div>
+          <div class="tone-preset-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-deck); font-size: 9.5px; cursor: pointer;">
+            <div style="width: 10px; height: 10px; border-radius: 2px; background: #1D2129;"></div>
+            <span>极客黑</span>
+          </div>
+          <div class="tone-preset-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--border-deck); font-size: 9.5px; cursor: pointer;">
+            <div style="width: 10px; height: 10px; border-radius: 2px; background: #EB2F96;"></div>
+            <span>洋红粉</span>
           </div>
         </div>
       </div>
