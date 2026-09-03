@@ -168,6 +168,32 @@ const MockupViews = {
         <button class="mockup-segment-btn">仅描边</button>
       </div>
 
+      <div class="mockup-section-header" style="padding-top: 4px;">
+        <span class="mockup-section-title">智能主色匹配</span>
+        <span class="mockup-section-hint">吸色自动推导整体色调</span>
+      </div>
+
+      <div class="mockup-setting-group" style="margin-bottom: 6px;">
+        <div class="mockup-setting-row" style="padding: 7px 14px; min-height: 40px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div id="mockup-swatch" style="width: 22px; height: 22px; border-radius: 4px; background-color: #FF5500; border: 1px solid var(--border-deck);"></div>
+            <div style="display: flex; flex-direction: column; gap: 1px;">
+              <span style="font-size: 11px; font-weight: 500;">目标主色调</span>
+              <span id="mockup-hex-text" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">#FF5500</span>
+            </div>
+          </div>
+          <label class="mockup-btn-secondary" style="height: 26px; padding: 0 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2l4 4-8.5 8.5-4-4L14 2z"/>
+              <path d="M5.5 14.5l-2.5 5 5-2.5"/>
+              <circle cx="18" cy="6" r="1"/>
+            </svg>
+            <span>吸管吸色</span>
+            <input type="color" value="#FF5500" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" oninput="document.getElementById('mockup-swatch').style.backgroundColor = this.value; document.getElementById('mockup-hex-text').textContent = this.value.toUpperCase();" />
+          </label>
+        </div>
+      </div>
+
       <div class="mockup-section-header">
         <span class="mockup-section-title">色彩调节 (HSL)</span>
       </div>
@@ -176,9 +202,17 @@ const MockupViews = {
         <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle);">
           <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <span style="font-size: 11.5px; font-weight: 500; color: var(--text-main);">色相 (Hue)</span>
-            <div style="display: inline-flex; align-items: center; background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 4px; padding: 0 4px 0 6px; height: 20px;">
-              <input type="number" id="mockup-num-hue" min="-180" max="180" value="15" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-hue').value = this.value;" />
-              <span style="font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin-left: 1px;">°</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <div style="display: inline-flex; align-items: center; background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 4px; padding: 0 4px 0 6px; height: 20px;">
+                <input type="number" id="mockup-num-hue" min="-180" max="180" value="15" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-hue').value = this.value;" />
+                <span style="font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin-left: 1px;">°</span>
+              </div>
+              <button onclick="document.getElementById('mockup-num-hue').value = 0; document.getElementById('mockup-range-hue').value = 0;" style="background: none; border: none; cursor: pointer; padding: 2px; color: var(--text-muted); display: flex;" title="重置为 0">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div style="width: 100%; height: 16px; display: flex; align-items: center;">
@@ -189,9 +223,17 @@ const MockupViews = {
         <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle);">
           <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <span style="font-size: 11.5px; font-weight: 500; color: var(--text-main);">饱和度 (Saturation)</span>
-            <div style="display: inline-flex; align-items: center; background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 4px; padding: 0 4px 0 6px; height: 20px;">
-              <input type="number" id="mockup-num-sat" min="-100" max="100" value="10" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-sat').value = this.value;" />
-              <span style="font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin-left: 1px;">%</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <div style="display: inline-flex; align-items: center; background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 4px; padding: 0 4px 0 6px; height: 20px;">
+                <input type="number" id="mockup-num-sat" min="-100" max="100" value="10" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-sat').value = this.value;" />
+                <span style="font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin-left: 1px;">%</span>
+              </div>
+              <button onclick="document.getElementById('mockup-num-sat').value = 0; document.getElementById('mockup-range-sat').value = 0;" style="background: none; border: none; cursor: pointer; padding: 2px; color: var(--text-muted); display: flex;" title="重置为 0">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div style="width: 100%; height: 16px; display: flex; align-items: center;">
@@ -202,9 +244,17 @@ const MockupViews = {
         <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <span style="font-size: 11.5px; font-weight: 500; color: var(--text-main);">明度 (Lightness)</span>
-            <div style="display: inline-flex; align-items: center; background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 4px; padding: 0 4px 0 6px; height: 20px;">
-              <input type="number" id="mockup-num-lit" min="-100" max="100" value="0" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-lit').value = this.value;" />
-              <span style="font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin-left: 1px;">%</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <div style="display: inline-flex; align-items: center; background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 4px; padding: 0 4px 0 6px; height: 20px;">
+                <input type="number" id="mockup-num-lit" min="-100" max="100" value="0" style="border: none; background: transparent; outline: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-main); width: 34px; text-align: right; padding: 0 1px 0 0;" oninput="document.getElementById('mockup-range-lit').value = this.value;" />
+                <span style="font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin-left: 1px;">%</span>
+              </div>
+              <button onclick="document.getElementById('mockup-num-lit').value = 0; document.getElementById('mockup-range-lit').value = 0;" style="background: none; border: none; cursor: pointer; padding: 2px; color: var(--text-muted); display: flex;" title="重置为 0">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div style="width: 100%; height: 16px; display: flex; align-items: center;">

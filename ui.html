@@ -702,6 +702,30 @@
       background-color: var(--bg-surface);
       box-shadow: 0 0 0 2px rgba(255, 85, 0, 0.15);
     }
+    .slider-reset-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      transition: all 0.12s ease;
+      flex-shrink: 0;
+    }
+    .slider-reset-btn:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--border-deck);
+      color: var(--text-main);
+    }
+    .slider-reset-btn:active {
+      transform: scale(0.9);
+      color: var(--accent-red);
+    }
     .slider-num-input {
       border: none;
       background: transparent;
@@ -2247,6 +2271,34 @@
             <button class="segment-btn ${state.colorScope === 'stroke' ? 'active' : ''}" onclick="setColorScope('stroke')">仅描边</button>
           </div>
 
+          <div class="section-header" style="padding-top: 4px;">
+            <span class="section-title">智能主色匹配</span>
+            <span class="section-hint" id="tone-match-hint">${state.selection?.dominantColor ? '当前主色: ' + state.selection.dominantColor.hex : '吸色自动匹配整体色调'}</span>
+          </div>
+
+          <div class="setting-group" style="margin-bottom: 6px;">
+            <div class="setting-row" style="padding: 7px 14px; min-height: 40px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div id="target-color-swatch" style="width: 22px; height: 22px; border-radius: 4px; background-color: ${state.targetToneColor || (state.selection?.dominantColor ? state.selection.dominantColor.hex : '#FF5500')}; border: 1px solid var(--border-deck); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); cursor: pointer;" onclick="pickToneColor()" title="点击通过取色器更改目标主色"></div>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                  <span class="setting-label" style="font-size: 11px;">目标主色调</span>
+                  <span id="target-color-hex" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">${state.targetToneColor || (state.selection?.dominantColor ? state.selection.dominantColor.hex : '#FF5500')}</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button class="btn btn-secondary" style="height: 26px; padding: 0 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;" onclick="pickToneColor()" title="吸取屏幕颜色自动推导整体色调">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2l4 4-8.5 8.5-4-4L14 2z"/>
+                    <path d="M5.5 14.5l-2.5 5 5-2.5"/>
+                    <circle cx="18" cy="6" r="1"/>
+                  </svg>
+                  <span>吸管吸色</span>
+                </button>
+                <input type="color" id="native-tone-color-picker" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" oninput="applyTargetToneColor(this.value)" />
+              </div>
+            </div>
+          </div>
+
           <div class="section-header">
             <span class="section-title">色彩调节 (HSL)</span>
           </div>
@@ -2255,13 +2307,21 @@
             <div class="setting-row color-slider-row" onwheel="handleColorWheel(event, 'hue')" ondblclick="resetColorProp('hue')">
               <div class="color-slider-header">
                 <span class="setting-label">色相 (Hue)</span>
-                <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
-                  <input type="number" id="num-hue" class="slider-num-input" min="-180" max="180" step="1" value="${state.hue}" 
-                         oninput="updateColorFromInput('hue', this.value)" 
-                         onchange="validateColorInput('hue', this)" 
-                         onkeydown="handleColorInputKey(event, 'hue', this)" 
-                         onfocus="this.select()" />
-                  <span class="slider-val-unit">°</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
+                    <input type="number" id="num-hue" class="slider-num-input" min="-180" max="180" step="1" value="${state.hue}" 
+                           oninput="updateColorFromInput('hue', this.value)" 
+                           onchange="validateColorInput('hue', this)" 
+                           onkeydown="handleColorInputKey(event, 'hue', this)" 
+                           onfocus="this.select()" />
+                    <span class="slider-val-unit">°</span>
+                  </div>
+                  <button class="slider-reset-btn" onclick="resetColorProp('hue')" title="重置色相为 0">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                      <path d="M3 3v5h5"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
               <div class="slider-track-wrap">
@@ -2275,13 +2335,21 @@
             <div class="setting-row color-slider-row" onwheel="handleColorWheel(event, 'saturation')" ondblclick="resetColorProp('saturation')">
               <div class="color-slider-header">
                 <span class="setting-label">饱和度 (Saturation)</span>
-                <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
-                  <input type="number" id="num-saturation" class="slider-num-input" min="-100" max="100" step="1" value="${state.saturation}" 
-                         oninput="updateColorFromInput('saturation', this.value)" 
-                         onchange="validateColorInput('saturation', this)" 
-                         onkeydown="handleColorInputKey(event, 'saturation', this)" 
-                         onfocus="this.select()" />
-                  <span class="slider-val-unit">%</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
+                    <input type="number" id="num-saturation" class="slider-num-input" min="-100" max="100" step="1" value="${state.saturation}" 
+                           oninput="updateColorFromInput('saturation', this.value)" 
+                           onchange="validateColorInput('saturation', this)" 
+                           onkeydown="handleColorInputKey(event, 'saturation', this)" 
+                           onfocus="this.select()" />
+                    <span class="slider-val-unit">%</span>
+                  </div>
+                  <button class="slider-reset-btn" onclick="resetColorProp('saturation')" title="重置饱和度为 0">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                      <path d="M3 3v5h5"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
               <div class="slider-track-wrap">
@@ -2295,13 +2363,21 @@
             <div class="setting-row color-slider-row" onwheel="handleColorWheel(event, 'lightness')" ondblclick="resetColorProp('lightness')">
               <div class="color-slider-header">
                 <span class="setting-label">明度 (Lightness)</span>
-                <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
-                  <input type="number" id="num-lightness" class="slider-num-input" min="-100" max="100" step="1" value="${state.lightness}" 
-                         oninput="updateColorFromInput('lightness', this.value)" 
-                         onchange="validateColorInput('lightness', this)" 
-                         onkeydown="handleColorInputKey(event, 'lightness', this)" 
-                         onfocus="this.select()" />
-                  <span class="slider-val-unit">%</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
+                    <input type="number" id="num-lightness" class="slider-num-input" min="-100" max="100" step="1" value="${state.lightness}" 
+                           oninput="updateColorFromInput('lightness', this.value)" 
+                           onchange="validateColorInput('lightness', this)" 
+                           onkeydown="handleColorInputKey(event, 'lightness', this)" 
+                           onfocus="this.select()" />
+                    <span class="slider-val-unit">%</span>
+                  </div>
+                  <button class="slider-reset-btn" onclick="resetColorProp('lightness')" title="重置明度为 0">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                      <path d="M3 3v5h5"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
               <div class="slider-track-wrap">
@@ -3062,15 +3138,52 @@ echo "=========================================="
       }
     };
 
+    const wheelAccumulator = { hue: 0, saturation: 0, lightness: 0 };
+    let wheelDecayTimer = null;
+
     window.handleColorWheel = function(event, prop) {
       event.preventDefault();
       event.stopPropagation();
-      const step = event.shiftKey ? 5 : 1;
-      const delta = (event.deltaY < 0 || event.deltaX > 0) ? step : -step;
-      const current = state[prop] || 0;
-      window.updateColor(prop, current + delta);
-      const numEl = document.getElementById('num-' + prop);
-      if (numEl) numEl.value = state[prop];
+
+      // Normalize delta across input devices (pixels, lines, pages)
+      let pixelDelta = event.deltaY;
+      if (Math.abs(pixelDelta) < 0.001 && Math.abs(event.deltaX) > 0.001) {
+        pixelDelta = -event.deltaX; // Support horizontal swipe
+      }
+      if (event.deltaMode === 1) {
+        // DOM_DELTA_LINE: 1 line is ~20px
+        pixelDelta *= 20;
+      } else if (event.deltaMode === 2) {
+        // DOM_DELTA_PAGE
+        pixelDelta *= 300;
+      }
+
+      // Scrolling up (negative delta) increases value; scrolling down decreases value
+      const directionDelta = -pixelDelta;
+
+      // Accumulate into buffer
+      wheelAccumulator[prop] = (wheelAccumulator[prop] || 0) + directionDelta;
+
+      // Calibrated physical threshold: 60px of physical scroll per 1 unit of adjustment
+      const THRESHOLD = 60;
+      if (Math.abs(wheelAccumulator[prop]) >= THRESHOLD) {
+        const units = Math.trunc(wheelAccumulator[prop] / THRESHOLD);
+        wheelAccumulator[prop] -= units * THRESHOLD;
+        const stepMultiplier = event.shiftKey ? 5 : 1;
+        const delta = units * stepMultiplier;
+        const current = state[prop] || 0;
+        window.updateColor(prop, current + delta);
+        const numEl = document.getElementById('num-' + prop);
+        if (numEl) numEl.value = state[prop];
+      }
+
+      // Inactivity decay: clear partial residual accumulator after 150ms
+      if (wheelDecayTimer) clearTimeout(wheelDecayTimer);
+      wheelDecayTimer = setTimeout(() => {
+        wheelAccumulator.hue = 0;
+        wheelAccumulator.saturation = 0;
+        wheelAccumulator.lightness = 0;
+      }, 150);
     };
 
     window.resetColorProp = function(prop) {
@@ -3078,6 +3191,99 @@ echo "=========================================="
       const numEl = document.getElementById('num-' + prop);
       if (numEl) numEl.value = 0;
     };
+
+    window.pickToneColor = async function() {
+      // 1. Try Chromium Native EyeDropper API (Screen-wide magnifier glass)
+      if (window.EyeDropper) {
+        try {
+          const eyeDropper = new EyeDropper();
+          const result = await eyeDropper.open();
+          if (result && result.sRGBHex) {
+            window.applyTargetToneColor(result.sRGBHex);
+            return;
+          }
+        } catch (e) {
+          // User cancelled with ESC or permission denied
+          if (e.name === 'AbortError') return;
+        }
+      }
+      // 2. Fallback to HTML5 color input
+      const picker = document.getElementById('native-tone-color-picker');
+      if (picker) {
+        picker.click();
+      }
+    };
+
+    window.applyTargetToneColor = function(targetHex) {
+      if (!targetHex) return;
+      targetHex = targetHex.toUpperCase();
+      state.targetToneColor = targetHex;
+
+      const targetHsl = hexToHsl(targetHex);
+      if (!targetHsl) return;
+
+      const base = state.selection?.dominantColor;
+      let deltaH = 0;
+      let deltaS = 0;
+      let deltaL = 0;
+
+      if (base) {
+        let diffH = targetHsl.h - base.h;
+        deltaH = Math.round(((diffH + 540) % 360) - 180);
+        deltaS = Math.max(-100, Math.min(100, Math.round(targetHsl.s - base.s)));
+        deltaL = Math.max(-100, Math.min(100, Math.round(targetHsl.l - base.l)));
+      } else {
+        deltaH = Math.round(targetHsl.h > 180 ? targetHsl.h - 360 : targetHsl.h);
+        deltaS = Math.max(-100, Math.min(100, Math.round(targetHsl.s - 50)));
+        deltaL = Math.max(-100, Math.min(100, Math.round(targetHsl.l - 50)));
+      }
+
+      window.updateColor('hue', deltaH);
+      window.updateColor('saturation', deltaS);
+      window.updateColor('lightness', deltaL);
+
+      const swatchEl = document.getElementById('target-color-swatch');
+      if (swatchEl) swatchEl.style.backgroundColor = targetHex;
+      const hexEl = document.getElementById('target-color-hex');
+      if (hexEl) hexEl.textContent = targetHex;
+      const hintEl = document.getElementById('tone-match-hint');
+      if (hintEl) {
+        hintEl.textContent = base ? `${base.hex} ➔ ${targetHex}` : `已匹配至 ${targetHex}`;
+      }
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'notify',
+          payload: { message: `🎯 已匹配主色调至 ${targetHex}` }
+        }
+      }, '*');
+    };
+
+    function hexToHsl(hex) {
+      hex = hex.replace('#', '');
+      if (hex.length === 3) {
+        hex = hex.split('').map(c => c + c).join('');
+      }
+      if (hex.length !== 6) return null;
+      const r = parseInt(hex.substring(0, 2), 16) / 255;
+      const g = parseInt(hex.substring(2, 4), 16) / 255;
+      const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0, s = 0, l = (max + min) / 2;
+
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return { h: h * 360, s: s * 100, l: l * 100 };
+    }
 
     window.sendColorPreview = function() {
       pendingPreviewPayload = {

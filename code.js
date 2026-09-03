@@ -269,6 +269,10 @@ const SelectionEngine = {
     let colorLayerCount = 0;
     let artboardCount = 0;
 
+    let dominantColor = null;
+    let fallbackColor = null;
+    const colorFrequency = new Map();
+
     function walk(node) {
       if (node.type === 'TEXT') {
         textNodeCount++;
@@ -278,6 +282,25 @@ const SelectionEngine = {
       }
       if ('fills' in node || 'strokes' in node) {
         colorLayerCount++;
+      }
+      if ('fills' in node && Array.isArray(node.fills)) {
+        for (const fill of node.fills) {
+          if (fill.type === 'SOLID' && fill.visible !== false && fill.opacity !== 0) {
+            const r255 = Math.round(fill.color.r * 255);
+            const g255 = Math.round(fill.color.g * 255);
+            const b255 = Math.round(fill.color.b * 255);
+            const hex = `#${((1 << 24) + (r255 << 16) + (g255 << 8) + b255).toString(16).slice(1).toUpperCase()}`;
+            if (!fallbackColor) {
+              fallbackColor = { hex, r: r255, g: g255, b: b255, color01: fill.color };
+            }
+            // Give non-neutral (colorful) layers higher weight
+            const isNeutral = (r255 > 240 && g255 > 240 && b255 > 240) || (r255 < 20 && g255 < 20 && b255 < 20);
+            const score = isNeutral ? 1 : 10;
+            const item = colorFrequency.get(hex) || { hex, r: r255, g: g255, b: b255, color01: fill.color, score: 0 };
+            item.score += score;
+            colorFrequency.set(hex, item);
+          }
+        }
       }
       if ('children' in node) {
         for (const child of node.children) {
@@ -290,11 +313,30 @@ const SelectionEngine = {
       walk(node);
     }
 
+    let best = null;
+    for (const item of colorFrequency.values()) {
+      if (!best || item.score > best.score) best = item;
+    }
+    const chosen = best || fallbackColor;
+    if (chosen) {
+      const hsl = rgbToHsl(chosen.color01.r, chosen.color01.g, chosen.color01.b);
+      dominantColor = {
+        hex: chosen.hex,
+        r: chosen.r,
+        g: chosen.g,
+        b: chosen.b,
+        h: Math.round(hsl.h),
+        s: Math.round(hsl.s * 100),
+        l: Math.round(hsl.l * 100)
+      };
+    }
+
     return {
       totalSelected: selection.length,
       artboardCount,
       textNodeCount,
       colorLayerCount,
+      dominantColor,
       canSaveStyle: selection.length === 1 && colorLayerCount > 0,
       detectedSourceLanguage: 'auto',
       detectedSourceLanguageName: '自动检测',
