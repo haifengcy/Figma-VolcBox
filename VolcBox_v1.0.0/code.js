@@ -777,7 +777,7 @@ function adjustPaints(paints, offsetHue, offsetSat, offsetLit, protectNeutrals =
   return paints.map(p => adjustColorPaint(p, offsetHue, offsetSat, offsetLit, protectNeutrals));
 }
 
-function recolorPaintToTone(paint, baseHsl, targetHsl, mode = 'family') {
+function recolorPaintToTone(paint, baseHsl, targetHsl) {
   if (!paint || !baseHsl || !targetHsl) return paint;
 
   function remapColor(color) {
@@ -792,44 +792,32 @@ function recolorPaintToTone(paint, baseHsl, targetHsl, mode = 'family') {
       return color; // Retain crisp neutrals unchanged
     }
 
-    // 2. Compute Hue Distance from Base Theme Color
-    const hueDistance = Math.min(
-      Math.abs(hsl.h - baseHsl.h),
-      360 - Math.abs(hsl.h - baseHsl.h)
-    );
+    // 2. Harmonic Angle Shift relative to base theme color
+    let offsetFromBase = hsl.h - baseHsl.h;
+    if (offsetFromBase > 180) offsetFromBase -= 360;
+    if (offsetFromBase < -180) offsetFromBase += 360;
 
-    const isFamily = hueDistance <= 38; // Within 38 degrees belongs to primary theme family (tints, shades, borders)
-
-    if (mode === 'family' && !isFamily) {
-      // In family mode, preserve distinct non-family colors (e.g., success green badges, warning reds)
-      return color;
-    }
-
-    // 3. Compute Delta Transformation
+    // Elements in the primary family (offset within 40 degrees) converge tightly on the target hue
+    // Elements that are secondary/accent maintain their harmonic relationship
     let newH;
-    if (isFamily) {
-      // Relative offset within the family is preserved
-      let localOffset = hsl.h - baseHsl.h;
-      if (localOffset > 180) localOffset -= 360;
-      if (localOffset < -180) localOffset += 360;
-      newH = (targetHsl.h + localOffset + 360) % 360;
+    if (Math.abs(offsetFromBase) <= 40) {
+      // Primary family: button, light container, border, active state
+      newH = (targetHsl.h + offsetFromBase * 0.35 + 720) % 360;
     } else {
-      // Harmonic rotation across the color wheel
-      const diffH = ((targetHsl.h - baseHsl.h + 540) % 360) - 180;
-      newH = (hsl.h + diffH + 360) % 360;
+      // Secondary/Accents: maintain full harmonic relation
+      newH = (targetHsl.h + offsetFromBase + 720) % 360;
     }
 
-    // New Saturation: scale proportionally to target vibrancy
+    // 3. New Saturation: scale proportionally to target vibrancy
     let newS = hsl.s;
     if (baseHsl.s > 0.15) {
       const sRatio = targetHsl.s / baseHsl.s;
-      newS = Math.max(0, Math.min(1, hsl.s * sRatio));
+      newS = Math.max(0.06, Math.min(1, hsl.s * Math.max(0.5, Math.min(1.8, sRatio))));
     } else {
-      newS = Math.max(0, Math.min(1, hsl.s + (targetHsl.s - baseHsl.s)));
+      newS = Math.max(0.06, Math.min(1, hsl.s + (targetHsl.s - baseHsl.s)));
     }
 
-    // New Lightness: adaptive curve preservation
-    // Light accents (e.g. 0.92 background) stay light, dark accents stay dark, midtones adapt
+    // 4. New Lightness: adaptive curve preservation
     const deltaL = targetHsl.l - baseHsl.l;
     const factor = Math.max(0, 1 - Math.abs(hsl.l - 0.5) * 1.6);
     let newL = Math.max(0.04, Math.min(0.96, hsl.l + deltaL * factor));
@@ -2603,30 +2591,31 @@ const Handlers = {
   },
 
   'theme/recolor-to-tone': async (requestId, payload) => {
-    const { baseHex, targetHex, mode = 'family', scope = 'all' } = payload || {};
+    const { baseHex, targetHex, scope = 'all' } = payload || {};
     const targetNodes = getAllColorNodes(figma.currentPage.selection);
     if (!targetNodes || targetNodes.length === 0) {
-      figma.notify('请先选中需要调整主题的图层或画板', { error: true });
+      figma.notify('请先在画布上选中需要调整色调的设计内容', { error: true });
       return;
     }
 
-    const baseRgb = hexToRgb01(baseHex);
     const targetRgb = hexToRgb01(targetHex);
     if (!targetRgb) {
-      figma.notify('目标颜色代码解析失败', { error: true });
+      figma.notify('未能识别吸取的颜色色值', { error: true });
       return;
     }
 
-    let baseHsl;
+    let baseHsl = null;
+    const baseRgb = hexToRgb01(baseHex);
     if (baseRgb) {
       baseHsl = rgbToHsl(baseRgb.r, baseRgb.g, baseRgb.b);
     } else {
       const scan = SelectionEngine.scan();
       if (scan && scan.dominantColor) {
         baseHsl = { h: scan.dominantColor.h, s: scan.dominantColor.s / 100, l: scan.dominantColor.l / 100 };
-      } else {
-        baseHsl = { h: 217, s: 1, l: 0.5 };
       }
+    }
+    if (!baseHsl) {
+      baseHsl = { h: 217, s: 1, l: 0.5 };
     }
 
     const targetHsl = rgbToHsl(targetRgb.r, targetRgb.g, targetRgb.b);
@@ -2636,7 +2625,7 @@ const Handlers = {
       let nodeModified = false;
       if ('fills' in node && (scope === 'all' || scope === 'fill') && Array.isArray(node.fills) && node.fills.length > 0) {
         const newFills = node.fills.map(fill => {
-          const adapted = recolorPaintToTone(fill, baseHsl, targetHsl, mode);
+          const adapted = recolorPaintToTone(fill, baseHsl, targetHsl);
           if (adapted !== fill) nodeModified = true;
           return adapted;
         });
@@ -2646,7 +2635,7 @@ const Handlers = {
       }
       if ('strokes' in node && (scope === 'all' || scope === 'stroke') && Array.isArray(node.strokes) && node.strokes.length > 0) {
         const newStrokes = node.strokes.map(stroke => {
-          const adapted = recolorPaintToTone(stroke, baseHsl, targetHsl, mode);
+          const adapted = recolorPaintToTone(stroke, baseHsl, targetHsl);
           if (adapted !== stroke) nodeModified = true;
           return adapted;
         });
@@ -2657,8 +2646,8 @@ const Handlers = {
       if (nodeModified) modifiedCount++;
     }
 
-    figma.notify(`🎨 主题色调已完美自适应迁移至 ${targetHex} (处理了 ${modifiedCount} 个图层)`);
-    sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: '主题色调调整完成' } });
+    figma.notify(`✨ 选中设计已自动匹配至 ${targetHex.toUpperCase()} 整体色调`);
+    sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: `已自动匹配 ${targetHex} 整体色调` } });
     sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 };

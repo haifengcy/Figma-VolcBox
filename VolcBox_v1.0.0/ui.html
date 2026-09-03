@@ -2308,72 +2308,43 @@
             <button class="segment-btn ${state.colorScope === 'stroke' ? 'active' : ''}" onclick="setColorScope('stroke')">仅描边</button>
           </div>
 
-          <div class="section-header" style="padding-top: 4px; justify-content: space-between; align-items: center;">
-            <span class="section-title">智能主题色调自适应</span>
-            <span class="section-hint">吸色自动将所选主题完整迁移至该色调</span>
+          <div class="section-header" style="padding-top: 4px;">
+            <span class="section-title">智能吸色整体调色</span>
+            <span class="section-hint">吸取画板色彩 ➔ 选区自动匹配整案色调</span>
           </div>
 
-          <div class="setting-group" style="margin-bottom: 6px;">
-            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--border-subtle);">
+          <div class="setting-group" style="margin-bottom: 8px;">
+            <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; border-bottom: 1px solid var(--border-subtle);">
+              <button class="btn btn-primary" style="height: 38px; width: 100%; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 7px; box-shadow: 0 2px 8px rgba(255, 85, 0, 0.22); cursor: pointer;" onclick="pickThemeToneColor()" ${!state.selection?.colorLayerCount ? 'disabled' : ''}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2l4 4-8.5 8.5-4-4L14 2z"/>
+                  <path d="M5.5 14.5l-2.5 5 5-2.5"/>
+                  <circle cx="18" cy="6" r="1"/>
+                </svg>
+                <span>点击吸色（吸取画板色彩，选区自动匹配整体色调）</span>
+              </button>
+
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: 500; color: var(--text-main);">已识别选区色彩 (点选设为主色基准)</span>
-                <span style="font-size: 10.5px; color: var(--text-muted);">${state.selection?.topColors?.length || 0} 种色彩</span>
-              </div>
-              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                ${(state.selection?.topColors && state.selection.topColors.length > 0) ? state.selection.topColors.map((c, idx) => `
-                  <div class="color-chip ${(state.sourceReplaceColor ? state.sourceReplaceColor === c.hex : idx === 0) ? 'active' : ''}" onclick="setSourceReplaceColor('${c.hex}')" title="${idx === 0 ? '识别为主导主色' : '色彩'} ${c.hex}">
-                    <div style="width: 13px; height: 13px; border-radius: 3px; background-color: ${c.hex}; border: 1px solid rgba(0,0,0,0.12);"></div>
-                    <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">${c.hex}</span>
-                    ${idx === 0 ? '<span style="font-size: 9px; color: var(--accent-red); margin-left: 1px;">主</span>' : ''}
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 10.5px; color: var(--text-muted);">识别选区主色:</span>
+                  <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-deck);">
+                    <div style="width: 12px; height: 12px; border-radius: 2px; background-color: ${state.sourceReplaceColor || (state.selection?.dominantColor?.hex || '#327FFF')};"></div>
+                    <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">${state.sourceReplaceColor || (state.selection?.dominantColor?.hex || '#327FFF')}</span>
                   </div>
-                `).join('') : `
-                  <span style="font-size: 10.5px; color: var(--text-muted);">画布中选中包含颜色的画板或图层即可自动提取</span>
-                `}
-              </div>
-            </div>
-
-            <div class="setting-row" style="padding: 8px 14px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle);">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <div style="display: flex; align-items: center; gap: 4px;" title="当前选中的原主色">
-                  <div style="width: 18px; height: 18px; border-radius: 3px; background-color: ${state.sourceReplaceColor || (state.selection?.topColors?.[0]?.hex || '#327FFF')}; border: 1px solid var(--border-deck);"></div>
-                  <span style="font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;">${state.sourceReplaceColor || (state.selection?.topColors?.[0]?.hex || '#327FFF')}</span>
                 </div>
-                <span style="color: var(--text-muted); font-size: 11px;">➔</span>
-                <div style="display: flex; align-items: center; gap: 4px;" title="吸取或设定的目标色调">
-                  <div id="target-replace-swatch" style="width: 18px; height: 18px; border-radius: 3px; background-color: ${state.targetReplaceColor || '#7000FF'}; border: 1px solid var(--border-deck); cursor: pointer;" onclick="pickThemeToneColor()"></div>
-                  <input type="text" id="target-replace-hex" class="slider-num-input" style="width: 58px; text-align: left; padding: 0 4px; background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 3px; height: 18px;" value="${state.targetReplaceColor || '#7000FF'}" onchange="setTargetReplaceColor(this.value)" />
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 10.5px; color: var(--text-muted);">最近匹配色调:</span>
+                  <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-deck);">
+                    <div id="target-replace-swatch" style="width: 12px; height: 12px; border-radius: 2px; background-color: ${state.targetReplaceColor || '#7000FF'}; cursor: pointer;" onclick="pickThemeToneColor()" title="点击吸色"></div>
+                    <span id="target-replace-hex-text" style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">${state.targetReplaceColor || '#7000FF'}</span>
+                  </div>
                 </div>
               </div>
-
-              <div style="display: flex; align-items: center; gap: 5px;">
-                <button class="btn btn-secondary" style="height: 25px; padding: 0 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;" onclick="pickThemeToneColor()" title="吸取屏幕色彩后自动将选区完整迁移至该色调">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2l4 4-8.5 8.5-4-4L14 2z"/>
-                    <path d="M5.5 14.5l-2.5 5 5-2.5"/>
-                    <circle cx="18" cy="6" r="1"/>
-                  </svg>
-                  <span>吸色并自适应</span>
-                </button>
-                <button class="btn btn-primary" style="height: 25px; padding: 0 10px; font-size: 11px; font-weight: 600;" onclick="executeThemeToneHarmonize()" ${!state.selection?.colorLayerCount ? 'disabled' : ''}>自动调色</button>
-              </div>
             </div>
 
-            <div class="setting-row" style="padding: 6px 14px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); background-color: rgba(0,0,0,0.015);">
-              <div style="display: flex; align-items: center; gap: 10px; font-size: 10px; color: var(--text-sub);">
-                <span style="font-weight: 500; color: var(--text-main);">自适应范围:</span>
-                <label style="display: flex; align-items: center; gap: 3px; cursor: pointer;" title="将主色及其深浅色阶、浅底、描边完整迁移，保留黑白灰与绿色等语义状态色">
-                  <input type="radio" name="tone-mode" value="family" ${state.toneMode !== 'all-harmonic' ? 'checked' : ''} onchange="state.toneMode = 'family'" style="accent-color: var(--accent-red); margin: 0;" />
-                  <span>主色族完整迁移 (保留黑白灰与语义色)</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 3px; cursor: pointer;" title="根据色相角度，将整案所有色彩协同旋转迁移">
-                  <input type="radio" name="tone-mode" value="all-harmonic" ${state.toneMode === 'all-harmonic' ? 'checked' : ''} onchange="state.toneMode = 'all-harmonic'" style="accent-color: var(--accent-red); margin: 0;" />
-                  <span>全案色彩协同</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="setting-row" style="padding: 6px 14px; align-items: center; gap: 8px; background-color: var(--bg-hover);">
-              <span style="font-size: 10px; color: var(--text-muted); font-weight: 500;">预设色调 (点击即迁移):</span>
+            <div class="setting-row" style="padding: 7px 14px; align-items: center; justify-content: space-between; background-color: var(--bg-hover);">
+              <span style="font-size: 10px; color: var(--text-muted); font-weight: 500;">快速体验预设色调:</span>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <div class="brand-swatch-dot" style="background-color: #FF5500;" onclick="quickApplyTone('#FF5500')" title="火山橙 #FF5500"></div>
                 <div class="brand-swatch-dot" style="background-color: #0066CC;" onclick="quickApplyTone('#0066CC')" title="科技蓝 #0066CC"></div>
@@ -3406,17 +3377,23 @@ echo "=========================================="
     window.executeThemeToneHarmonize = function(explicitTargetHex) {
       const base = state.sourceReplaceColor || state.selection?.topColors?.[0]?.hex || state.selection?.dominantColor?.hex;
       const target = explicitTargetHex || state.targetReplaceColor || '#7000FF';
-      if (!base || !target) {
-        window.showToast('未检测到选区主色');
+      if (!target) {
+        window.showToast('未指定目标颜色');
         return;
       }
+      state.targetReplaceColor = target;
+      state.lastSampledTone = target;
+      const swatch = document.getElementById('target-replace-swatch');
+      if (swatch) swatch.style.backgroundColor = target;
+      const hexText = document.getElementById('target-replace-hex-text');
+      if (hexText) hexText.textContent = target;
+
       parent.postMessage({
         pluginMessage: {
           type: 'theme/recolor-to-tone',
           payload: {
             baseHex: base,
             targetHex: target,
-            mode: state.toneMode || 'family',
             scope: state.colorScope || 'all'
           }
         }
