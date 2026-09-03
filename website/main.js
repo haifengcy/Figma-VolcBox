@@ -168,29 +168,30 @@ const MockupViews = {
         <button class="mockup-segment-btn">仅描边</button>
       </div>
 
-      <div class="mockup-section-header" style="padding-top: 4px;">
-        <span class="mockup-section-title">选区色彩提取与替换</span>
-        <span class="mockup-section-hint">点击选区色彩可精准替换</span>
+      <div class="mockup-section-header" style="padding-top: 4px; justify-content: space-between; align-items: center;">
+        <span class="mockup-section-title">智能主题色调自适应</span>
+        <span class="mockup-section-hint">吸色自动将所选主题完整迁移至该色调</span>
       </div>
 
       <div class="mockup-setting-group" style="margin-bottom: 6px;">
         <div class="mockup-setting-row" style="flex-direction: column; align-items: stretch; gap: 7px; padding: 8px 14px; border-bottom: 1px solid var(--border-subtle);">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11px; font-weight: 500;">已提取色彩</span>
+            <span style="font-size: 11px; font-weight: 500;">已识别选区色彩 (点选设为主色基准)</span>
             <span style="font-size: 10px; color: var(--text-muted);">3 种色彩</span>
           </div>
           <div style="display: flex; gap: 6px;">
             <div class="color-chip active" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-surface); border: 1px solid var(--accent-red); cursor: pointer;">
-              <div style="width: 12px; height: 12px; border-radius: 2px; background: #0066CC;"></div>
-              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#0066CC</span>
+              <div style="width: 12px; height: 12px; border-radius: 2px; background: #327FFF;"></div>
+              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#327FFF</span>
+              <span style="font-size: 9px; color: var(--accent-red); margin-left: 1px;">主</span>
             </div>
             <div class="color-chip" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-hover); border: 1px solid var(--border-deck); cursor: pointer;">
-              <div style="width: 12px; height: 12px; border-radius: 2px; background: #30D158;"></div>
-              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#30D158</span>
+              <div style="width: 12px; height: 12px; border-radius: 2px; background: #0A9655;"></div>
+              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#0A9655</span>
             </div>
             <div class="color-chip" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; background: var(--bg-hover); border: 1px solid var(--border-deck); cursor: pointer;">
-              <div style="width: 12px; height: 12px; border-radius: 2px; background: #FF5500;"></div>
-              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#FF5500</span>
+              <div style="width: 12px; height: 12px; border-radius: 2px; background: #FFFFFF; border: 1px solid rgba(0,0,0,0.1);"></div>
+              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#FFFFFF</span>
             </div>
           </div>
         </div>
@@ -198,20 +199,20 @@ const MockupViews = {
         <div class="mockup-setting-row" style="padding: 7px 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle);">
           <div style="display: flex; align-items: center; gap: 6px;">
             <div style="display: flex; align-items: center; gap: 4px;">
-              <div style="width: 16px; height: 16px; border-radius: 3px; background: #0066CC; border: 1px solid var(--border-deck);"></div>
-              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#0066CC</span>
+              <div style="width: 16px; height: 16px; border-radius: 3px; background: #327FFF; border: 1px solid var(--border-deck);"></div>
+              <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#327FFF</span>
             </div>
             <span style="color: var(--text-muted); font-size: 10px;">➔</span>
             <div style="display: flex; align-items: center; gap: 4px;">
-              <div id="mockup-swatch" style="width: 16px; height: 16px; border-radius: 3px; background: #FF5500; border: 1px solid var(--border-deck);"></div>
-              <span id="mockup-hex-text" style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#FF5500</span>
+              <div id="mockup-swatch" style="width: 16px; height: 16px; border-radius: 3px; background: #7000FF; border: 1px solid var(--border-deck);"></div>
+              <span id="mockup-hex-text" style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">#7000FF</span>
             </div>
           </div>
-          <button class="mockup-btn-primary" style="height: 22px; padding: 0 8px; font-size: 10.5px;">替换主色</button>
+          <button class="mockup-btn-primary" style="height: 22px; padding: 0 8px; font-size: 10.5px;">自动调色</button>
         </div>
 
         <div class="mockup-setting-row" style="padding: 5px 14px; align-items: center; gap: 8px; background-color: var(--bg-hover);">
-          <span style="font-size: 9.5px; color: var(--text-muted);">常用色:</span>
+          <span style="font-size: 9.5px; color: var(--text-muted);">预设色调:</span>
           <div style="display: flex; align-items: center; gap: 6px;">
             <div class="brand-swatch-dot" style="width: 14px; height: 14px; border-radius: 50%; background: #FF5500; cursor: pointer;" onclick="document.getElementById('mockup-swatch').style.backgroundColor = '#FF5500'; document.getElementById('mockup-hex-text').textContent = '#FF5500';"></div>
             <div class="brand-swatch-dot" style="width: 14px; height: 14px; border-radius: 50%; background: #0066CC; cursor: pointer;" onclick="document.getElementById('mockup-swatch').style.backgroundColor = '#0066CC'; document.getElementById('mockup-hex-text').textContent = '#0066CC';"></div>

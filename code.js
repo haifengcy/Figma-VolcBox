@@ -777,6 +777,87 @@ function adjustPaints(paints, offsetHue, offsetSat, offsetLit, protectNeutrals =
   return paints.map(p => adjustColorPaint(p, offsetHue, offsetSat, offsetLit, protectNeutrals));
 }
 
+function recolorPaintToTone(paint, baseHsl, targetHsl, mode = 'family') {
+  if (!paint || !baseHsl || !targetHsl) return paint;
+
+  function remapColor(color) {
+    if (!color) return color;
+    const hsl = rgbToHsl(color.r, color.g, color.b);
+
+    // 1. Absolute Neutral Protection (Pure White, Pure Black, Neutral Gray, Off-White card bases, typography)
+    const isPureWhite = color.r > 0.96 && color.g > 0.96 && color.b > 0.96;
+    const isPureBlack = color.r < 0.08 && color.g < 0.08 && color.b < 0.08;
+    const isNeutralGray = hsl.s < 0.08;
+    if (isPureWhite || isPureBlack || isNeutralGray) {
+      return color; // Retain crisp neutrals unchanged
+    }
+
+    // 2. Compute Hue Distance from Base Theme Color
+    const hueDistance = Math.min(
+      Math.abs(hsl.h - baseHsl.h),
+      360 - Math.abs(hsl.h - baseHsl.h)
+    );
+
+    const isFamily = hueDistance <= 38; // Within 38 degrees belongs to primary theme family (tints, shades, borders)
+
+    if (mode === 'family' && !isFamily) {
+      // In family mode, preserve distinct non-family colors (e.g., success green badges, warning reds)
+      return color;
+    }
+
+    // 3. Compute Delta Transformation
+    let newH;
+    if (isFamily) {
+      // Relative offset within the family is preserved
+      let localOffset = hsl.h - baseHsl.h;
+      if (localOffset > 180) localOffset -= 360;
+      if (localOffset < -180) localOffset += 360;
+      newH = (targetHsl.h + localOffset + 360) % 360;
+    } else {
+      // Harmonic rotation across the color wheel
+      const diffH = ((targetHsl.h - baseHsl.h + 540) % 360) - 180;
+      newH = (hsl.h + diffH + 360) % 360;
+    }
+
+    // New Saturation: scale proportionally to target vibrancy
+    let newS = hsl.s;
+    if (baseHsl.s > 0.15) {
+      const sRatio = targetHsl.s / baseHsl.s;
+      newS = Math.max(0, Math.min(1, hsl.s * sRatio));
+    } else {
+      newS = Math.max(0, Math.min(1, hsl.s + (targetHsl.s - baseHsl.s)));
+    }
+
+    // New Lightness: adaptive curve preservation
+    // Light accents (e.g. 0.92 background) stay light, dark accents stay dark, midtones adapt
+    const deltaL = targetHsl.l - baseHsl.l;
+    const factor = Math.max(0, 1 - Math.abs(hsl.l - 0.5) * 1.6);
+    let newL = Math.max(0.04, Math.min(0.96, hsl.l + deltaL * factor));
+
+    return hslToRgb(newH, newS, newL);
+  }
+
+  if (paint.type === 'SOLID') {
+    const newColor = remapColor(paint.color);
+    return { ...paint, color: newColor };
+  } else if (paint.type && paint.type.startsWith('GRADIENT_') && Array.isArray(paint.gradientStops)) {
+    const newStops = paint.gradientStops.map(stop => {
+      const newColor = remapColor(stop.color);
+      return {
+        ...stop,
+        color: {
+          r: newColor.r,
+          g: newColor.g,
+          b: newColor.b,
+          a: stop.color.a !== undefined ? stop.color.a : 1
+        }
+      };
+    });
+    return { ...paint, gradientStops: newStops };
+  }
+  return paint;
+}
+
 function getAllColorNodes(nodes) {
   const colorNodes = [];
   function walk(node) {
@@ -2518,6 +2599,66 @@ const Handlers = {
 
     figma.notify(`🎯 已将 ${count} 个图层的 ${sourceHex} 精准替换为 ${targetHex}`);
     sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: `替换了 ${count} 处色彩` } });
+    sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
+  },
+
+  'theme/recolor-to-tone': async (requestId, payload) => {
+    const { baseHex, targetHex, mode = 'family', scope = 'all' } = payload || {};
+    const targetNodes = getAllColorNodes(figma.currentPage.selection);
+    if (!targetNodes || targetNodes.length === 0) {
+      figma.notify('请先选中需要调整主题的图层或画板', { error: true });
+      return;
+    }
+
+    const baseRgb = hexToRgb01(baseHex);
+    const targetRgb = hexToRgb01(targetHex);
+    if (!targetRgb) {
+      figma.notify('目标颜色代码解析失败', { error: true });
+      return;
+    }
+
+    let baseHsl;
+    if (baseRgb) {
+      baseHsl = rgbToHsl(baseRgb.r, baseRgb.g, baseRgb.b);
+    } else {
+      const scan = SelectionEngine.scan();
+      if (scan && scan.dominantColor) {
+        baseHsl = { h: scan.dominantColor.h, s: scan.dominantColor.s / 100, l: scan.dominantColor.l / 100 };
+      } else {
+        baseHsl = { h: 217, s: 1, l: 0.5 };
+      }
+    }
+
+    const targetHsl = rgbToHsl(targetRgb.r, targetRgb.g, targetRgb.b);
+
+    let modifiedCount = 0;
+    for (const node of targetNodes) {
+      let nodeModified = false;
+      if ('fills' in node && (scope === 'all' || scope === 'fill') && Array.isArray(node.fills) && node.fills.length > 0) {
+        const newFills = node.fills.map(fill => {
+          const adapted = recolorPaintToTone(fill, baseHsl, targetHsl, mode);
+          if (adapted !== fill) nodeModified = true;
+          return adapted;
+        });
+        if (nodeModified) {
+          try { node.fills = newFills; } catch (e) {}
+        }
+      }
+      if ('strokes' in node && (scope === 'all' || scope === 'stroke') && Array.isArray(node.strokes) && node.strokes.length > 0) {
+        const newStrokes = node.strokes.map(stroke => {
+          const adapted = recolorPaintToTone(stroke, baseHsl, targetHsl, mode);
+          if (adapted !== stroke) nodeModified = true;
+          return adapted;
+        });
+        if (nodeModified) {
+          try { node.strokes = newStrokes; } catch (e) {}
+        }
+      }
+      if (nodeModified) modifiedCount++;
+    }
+
+    figma.notify(`🎨 主题色调已完美自适应迁移至 ${targetHex} (处理了 ${modifiedCount} 个图层)`);
+    sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: '主题色调调整完成' } });
     sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 };
