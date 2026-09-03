@@ -721,17 +721,101 @@ async function getExactDefaultLineHeight(fontName, fontSize) {
 }
 
 // =====================================================================
-// SMART MOCK ENGINE
+// SMART MOCK ENGINE (Context-Aware & Semantic-Driven)
 // =====================================================================
 const SmartMockEngine = {
+  CHINESE_NAMES: ['张伟', '王芳', '李娜', '刘洋', '陈杰', '杨敏', '赵敏', '周强', '徐磊', '孙悦', '林晨', '黄博', '吴昊', '朱婷', '何静', '高飞', '郭涛', '马超', '唐雪', '范文'],
+  ENGLISH_NAMES: ['Alex Morgan', 'Sarah Jenkins', 'Michael Chang', 'Jessica Taylor', 'David Miller', 'Emma Watson', 'James Wilson', 'Olivia Brown', 'Daniel Craig', 'Sophia Garcia'],
+  CITIES: ['北京市朝阳区', '上海市浦东新区', '深圳市南山区', '广州市天河区', '杭州市西湖区', '成都市高新区', '武汉市武昌区', '南京市玄武区', '苏州市工业园区'],
+  GLOBAL_CITIES: ['New York, US', 'London, UK', 'Tokyo, Japan', 'Singapore', 'Paris, France', 'Sydney, Australia', 'Berlin, Germany', 'Toronto, Canada', 'Seoul, Korea'],
+  COMPANIES: ['字节跳动', '腾讯科技', '阿里巴巴', '美团点评', '蚂蚁集团', '小红书', '商汤科技', '米哈游', '快手科技', '微软中国', '谷歌中国', '苹果公司'],
+  JOB_TITLES: ['高级产品经理', '全栈开发工程师', '资深视觉设计师', '运营总监', '技术专家', '用户增长负责人', '系统架构师', '市场战略专家'],
+  STATUSES: ['进行中', '已完成', '待支付', '审核中', '已发货', '已归档', '处理中', '已关闭', '待确认'],
+  PRODUCT_NAMES: ['无线降噪蓝牙耳机 Pro', '4K 超清智能投影仪', '人体工学机械键盘', '便携式快充移动电源', '极简陶瓷马克杯', '智能恒温电水壶', '全自动手冲咖啡机', '真皮极简卡包'],
+  DESCRIPTIONS: [
+    '打造下一代高效协同设计体验，专注于用户价值与业务增长。',
+    '基于前沿大模型与自动化工作流，重塑数字产品研发全生命周期。',
+    '极简现代工业美学设计，兼顾极致性能与直觉化操作手感。',
+    '覆盖全球多语言与本地化设计规范，助力团队无缝开拓出海业务。'
+  ],
   TICKERS: ['USDX', 'EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'BTCUSD', 'ETHUSD', 'USOIL', 'HK0700', 'AAPL', 'TSLA', 'NVDA', 'AUDUSD', 'USDCAD', 'NZDUSD', 'USDCHF'],
   NAMES: ['腾讯控股', '苹果', '特斯拉', '英伟达', '美元指数', '欧元/美元', '英镑/美元', '黄金', '比特币', '原油', '纳斯达克', '标普500'],
 
-  mockText(original) {
-    let modified = original;
+  mockText(original, node) {
     const trimmed = (original || '').trim();
+    const layerName = node ? (node.name || '').toLowerCase() : '';
 
-    // 1. Exact matches (Tickers, Names, Statuses)
+    // --- Phase 1: Layer Name Context Inference ---
+    if (layerName) {
+      // 1. User Names
+      if (/name|姓名|用户|author|user|昵称|owner/i.test(layerName)) {
+        if (/[A-Za-z]{2,}\s+[A-Za-z]{2,}/.test(trimmed) || /en_name|english/i.test(layerName)) {
+          return this.ENGLISH_NAMES[Math.floor(Math.random() * this.ENGLISH_NAMES.length)];
+        }
+        return this.CHINESE_NAMES[Math.floor(Math.random() * this.CHINESE_NAMES.length)];
+      }
+
+      // 2. Price & Amounts
+      if (/price|价格|金额|cost|fee|原价|现价|售价|amount/i.test(layerName)) {
+        const symbolMatch = trimmed.match(/^([¥$€£￥]\s*)/);
+        const prefix = symbolMatch ? symbolMatch[1] : (trimmed.startsWith('¥') ? '¥' : '');
+        const suffixMatch = trimmed.match(/(\s*[\/月年次件套包])$/);
+        const suffix = suffixMatch ? suffixMatch[1] : '';
+        const priceVal = (Math.floor(Math.random() * 800) + 19) + (Math.random() > 0.5 ? '.00' : '.90');
+        return `${prefix}${priceVal}${suffix}`;
+      }
+
+      // 3. City / Address
+      if (/city|城市|address|地址|location|地区|省份/i.test(layerName)) {
+        if (/global|en|world/i.test(layerName) || /^[A-Za-z\s,]+$/.test(trimmed)) {
+          return this.GLOBAL_CITIES[Math.floor(Math.random() * this.GLOBAL_CITIES.length)];
+        }
+        return this.CITIES[Math.floor(Math.random() * this.CITIES.length)];
+      }
+
+      // 4. Company / Org
+      if (/company|公司|企业|org|corp|brand|品牌/i.test(layerName)) {
+        return this.COMPANIES[Math.floor(Math.random() * this.COMPANIES.length)];
+      }
+
+      // 5. Job Title
+      if (/job|title|role|position|职位|岗位|角色/i.test(layerName)) {
+        return this.JOB_TITLES[Math.floor(Math.random() * this.JOB_TITLES.length)];
+      }
+
+      // 6. Status / Tag / Badge
+      if (/status|state|tag|badge|状态|标签/i.test(layerName)) {
+        return this.STATUSES[Math.floor(Math.random() * this.STATUSES.length)];
+      }
+
+      // 7. Product / Item / Goods
+      if (/product|goods|item|sku|商品|产品/i.test(layerName)) {
+        return this.PRODUCT_NAMES[Math.floor(Math.random() * this.PRODUCT_NAMES.length)];
+      }
+
+      // 8. Order / ID / Code
+      if (/order|sn|no|id|code|订单|单号|编号/i.test(layerName)) {
+        const year = 2024;
+        const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+        const randomNum = Math.floor(Math.random() * 900000) + 100000;
+        return `ORD${year}${month}${randomNum}`;
+      }
+
+      // 9. Score / Rating
+      if (/score|rate|rating|star|评分|评价|得分/i.test(layerName)) {
+        return (4.5 + Math.random() * 0.5).toFixed(1);
+      }
+
+      // 10. Description / Intro
+      if (/desc|intro|summary|bio|content|描述|简介|摘要|内容/i.test(layerName) && trimmed.length > 10) {
+        return this.DESCRIPTIONS[Math.floor(Math.random() * this.DESCRIPTIONS.length)];
+      }
+    }
+
+    // --- Phase 2: Content Pattern Matching (Text Regex) ---
+    let modified = original;
+
+    // A. Tickers & Financial Names
     if (this.TICKERS.includes(trimmed) || /^[A-Z]{4,6}$/.test(trimmed)) {
       return this.TICKERS[Math.floor(Math.random() * this.TICKERS.length)];
     }
@@ -739,14 +823,24 @@ const SmartMockEngine = {
       return this.NAMES[Math.floor(Math.random() * this.NAMES.length)];
     }
 
-    // 2. Emails
+    // B. Chinese Names (2-3 chars matching common surnames)
+    if (/^[赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张孔曹严华金魏陶姜戚谢邹喻柏水窦章云苏潘葛奚范彭郎鲁韦昌马苗凤花方俞任袁柳酆鲍史唐费廉岑薛雷贺倪汤滕殷罗毕郝邬安常乐于时傅皮卞齐康伍余元卜顾孟平黄和穆萧尹姚邵湛汪祁毛禹狄米贝明臧计伏成戴谈宋茅庞熊纪舒屈项祝董梁杜阮蓝闵席季麻强贾路娄危江童颜郭梅盛林刁钟徐邱骆高夏蔡田樊胡凌霍虞万支柯昝管卢莫经房裘缪干解应宗丁宣贲邓郁单杭洪包诸左石崔吉钮龚程嵇邢滑裴陆荣翁荀羊於惠甄曲家封芮羿储靳汲邴糜松井段富巫乌焦巴弓牧隗山谷车侯宓蓬全郗班仰秋仲伊宫宁仇栾暴甘钭厉戎祖武符刘景詹束龙叶幸司韶郜黎蓟薄印宿白怀蒲邰从鄂索咸籍赖卓蔺屠蒙池乔阴鬱胥能苍双闻莘党翟谭贡劳逄姬申扶堵冉宰郦雍郤璩桑桂濮扈套寿通边扈燕冀郏浦尚农温别庄晏柴瞿阎充慕连茹习宦艾鱼容向古易慎戈廖庾终暨居衡步都耿满弘匡国文寇广禄阙东欧殳沃利蔚越夔隆师巩厍聂晁勾敖融冷訾辛阚那简饶空曾毋沙乜养鞠须丰巢关蒯相查后荆红游竺权逯盖益桓公][\u4e00-\u9fa5]{1,2}$/.test(trimmed)) {
+      return this.CHINESE_NAMES[Math.floor(Math.random() * this.CHINESE_NAMES.length)];
+    }
+
+    // C. English Full Names (Capitalized First + Last)
+    if (/^[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}$/.test(trimmed)) {
+      return this.ENGLISH_NAMES[Math.floor(Math.random() * this.ENGLISH_NAMES.length)];
+    }
+
+    // D. Emails
     modified = modified.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, () => {
       const domains = ['gmail.com', 'outlook.com', '163.com', 'qq.com', 'company.com'];
       const names = ['alex', 'sarah', 'michael', 'jessica', 'chen', 'li', 'wang', 'smith', 'john'];
       return `${names[Math.floor(Math.random() * names.length)]}${Math.floor(Math.random() * 999)}@${domains[Math.floor(Math.random() * domains.length)]}`;
     });
 
-    // 3. Phones (11 digits, typical Chinese mobile, spaced or dashed)
+    // E. Phones (11 digits, typical Chinese mobile, spaced or dashed)
     modified = modified.replace(/(^|[^\d])(1[3-9]\d)([-\s]?)(\d{4})\3(\d{4})(?![\d])/g, (match, prefix, head, sep, m1, m2) => {
       const newHead = '1' + (Math.floor(Math.random() * 7) + 3) + Math.floor(Math.random() * 10);
       const newM1 = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -754,9 +848,9 @@ const SmartMockEngine = {
       return `${prefix}${newHead}${sep}${newM1}${sep}${newM2}`;
     });
 
-    // 4. Dates (YYYY-MM-DD or MM/DD)
+    // F. Dates (YYYY-MM-DD, YYYY/MM/DD, or MM/DD)
     modified = modified.replace(/(^|[^\d])((?:19|20)\d{2})([-\/.])(\d{1,2})\3(\d{1,2})(?![\d])/g, (match, prefix, yStr, sep, mStr, dStr) => {
-      const y = 2020 + Math.floor(Math.random() * 5);
+      const y = 2024 + Math.floor(Math.random() * 3);
       const m = Math.floor(Math.random() * 12 + 1).toString().padStart(mStr.length, '0');
       const d = Math.floor(Math.random() * 28 + 1).toString().padStart(dStr.length, '0');
       return `${prefix}${y}${sep}${m}${sep}${d}`;
@@ -767,13 +861,13 @@ const SmartMockEngine = {
       return `${prefix}${m}${sep}${d}`;
     });
 
-    // 5. A-Share Codes (e.g. 600519)
+    // G. A-Share Codes (e.g. 600519)
     modified = modified.replace(/(^|[^\d])(600|601|603|688|000|002|003|300)(\d{3})(?![\d])/g, (match, prefix, head) => {
       const tail = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       return `${prefix}${head}${tail}`;
     });
 
-    // 6. Times (HH:MM or HH:MM:SS)
+    // H. Times (HH:MM or HH:MM:SS)
     modified = modified.replace(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\b/g, (match, hStr, mStr, sStr) => {
       const h = Math.floor(Math.random() * 24).toString().padStart(hStr.length, '0');
       const m = Math.floor(Math.random() * 60).toString().padStart(2, '0');
@@ -784,7 +878,14 @@ const SmartMockEngine = {
       return `${h}:${m}`;
     });
 
-    // 7. Percentages & Decimals
+    // I. Currency & Price Numbers (e.g. ¥199.00 or $49.90)
+    modified = modified.replace(/(¥|\$|€|£|￥)\s*(\d+)(?:\.(\d+))?/g, (match, symbol, intPart, decPart) => {
+      const newInt = Math.floor(Math.random() * 800) + 19;
+      const newDec = decPart ? (Math.random() > 0.5 ? '00' : '90') : '';
+      return newDec ? `${symbol}${newInt}.${newDec}` : `${symbol}${newInt}`;
+    });
+
+    // J. Percentages & Decimals
     modified = modified.replace(/([+-]?\s*)(\d+)(?:\.(\d+))?(%?)/g, (match, sign, intStr, decStr, isPercent) => {
       if (!decStr && !isPercent) return match;
       
@@ -804,7 +905,7 @@ const SmartMockEngine = {
       }
     });
 
-    // 8. Isolated Integers
+    // K. Isolated Integers
     modified = modified.replace(/(^|[^\d\.:])([+-]?\s*)(\d+)(?![\d\.%:\/])/g, (match, prefix, sign, intStr) => {
       if (intStr.length === 4 && (intStr.startsWith('1') || intStr.startsWith('2'))) return match; // Skip years
       if (intStr === '0') return match;
@@ -819,9 +920,9 @@ const SmartMockEngine = {
     return modified;
   },
 
-  mockTaggedText(taggedText) {
+  mockTaggedText(taggedText, node) {
     return taggedText.replace(/<span\s+id\s*=\s*["']?(\d+)["']?\s*>([\s\S]*?)<\/\s*span\s*>/gi, (match, id, innerText) => {
-      const transformed = this.mockText(innerText);
+      const transformed = this.mockText(innerText, node);
       return `<span id="${id}">${transformed}</span>`;
     });
   }
@@ -1510,13 +1611,13 @@ const Handlers = {
             styles: extracted.styles
           }));
 
-          const modifiedTagged = SmartMockEngine.mockTaggedText(extracted.taggedText);
+          const modifiedTagged = SmartMockEngine.mockTaggedText(extracted.taggedText, node);
           if (modifiedTagged !== extracted.taggedText) {
             await RichTextHelper.apply(node, modifiedTagged, extracted.styles);
             count++;
           }
         } else {
-          const modified = SmartMockEngine.mockText(original);
+          const modified = SmartMockEngine.mockText(original, node);
           if (modified !== original) {
             node.setPluginData('volc_fill_original_mem', JSON.stringify({ text: original }));
             if (node.fontName === figma.mixed) {
