@@ -1596,20 +1596,40 @@ const Handlers = {
       return;
     }
 
+    // 1. Capture snapshot before writing to support reliable, selection-independent Undo
+    const undoSnapshot = {
+      timestamp: Date.now(),
+      records: []
+    };
+
+    for (const item of results) {
+      const node = await figma.getNodeByIdAsync(item.id);
+      if (node && node.type === 'TEXT' && item.translated && item.translated !== node.characters) {
+        let memData = {
+          id: node.id,
+          text: node.characters,
+          isRich: RichTextHelper.isRich(node)
+        };
+        if (memData.isRich) {
+          const extracted = RichTextHelper.extract(node);
+          memData.taggedText = extracted.taggedText;
+          memData.styles = extracted.styles;
+        }
+        undoSnapshot.records.push(memData);
+        node.setPluginData('volc_translate_original_mem', JSON.stringify(memData));
+      }
+    }
+
+    if (undoSnapshot.records.length > 0) {
+      StorageEngine.pushUndo(undoSnapshot);
+    }
+
+    // 2. Apply translated characters & rich styles
     let completed = 0;
     for (const item of results) {
       const node = await figma.getNodeByIdAsync(item.id);
       if (node && node.type === 'TEXT' && item.translated && item.translated !== node.characters) {
         try {
-          // 覆盖记忆当前（翻译前）的文本及其富文本状态
-          let memData = { text: node.characters };
-          if (RichTextHelper.isRich(node)) {
-            const extracted = RichTextHelper.extract(node);
-            memData.taggedText = extracted.taggedText;
-            memData.styles = extracted.styles;
-          }
-          node.setPluginData('volc_translate_original_mem', JSON.stringify(memData));
-
           if (preserveRichText && item.richStyles) {
             await RichTextHelper.apply(node, item.translated, item.richStyles);
           } else {
@@ -1633,6 +1653,7 @@ const Handlers = {
       requestId,
       payload: { taskId: requestId, message: `翻译完成 ${completed} 个图层` },
     });
+    sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 
   'translation/frame-scheme-run': async (requestId, payload) => {
@@ -1714,51 +1735,69 @@ const Handlers = {
   },
 
   'translation/undo': async (requestId) => {
-    const textNodes = SelectionEngine.getTextNodes();
+    let recordsToRestore = [];
     
-    if (textNodes.length === 0) {
-      figma.notify('请先选中需要撤回翻译的文本图层');
+    // 1. Try global snapshot first (restores whole translation transaction even if selection changed)
+    const lastSnapshot = StorageEngine.popUndo();
+    if (lastSnapshot && lastSnapshot.records && lastSnapshot.records.length > 0) {
+      recordsToRestore = lastSnapshot.records;
+    } else {
+      // 2. Fallback to currently selected nodes' pluginData
+      const textNodes = SelectionEngine.getTextNodes();
+      for (const node of textNodes) {
+        const memRaw = node.getPluginData('volc_translate_original_mem');
+        if (memRaw) {
+          try {
+            recordsToRestore.push({ id: node.id, ...JSON.parse(memRaw) });
+          } catch (e) {
+            recordsToRestore.push({ id: node.id, text: memRaw });
+          }
+        }
+      }
+    }
+
+    if (recordsToRestore.length === 0) {
+      figma.notify('没有可撤回的翻译记录');
       sendToUI({
         type: 'task/failed',
         requestId,
-        payload: { taskId: requestId, error: { message: '未选中图层' } },
+        payload: { taskId: requestId, error: { message: '没有可撤回的翻译记录' } },
       });
       return;
     }
 
     let restored = 0;
-    for (const node of textNodes) {
-      const memRaw = node.getPluginData('volc_translate_original_mem');
-      if (memRaw) {
-        let memData;
-        try {
-          memData = JSON.parse(memRaw);
-        } catch(e) {
-          memData = { text: memRaw }; // Backwards compatibility for plain text
-        }
-        
-        if (memData.text && memData.text !== node.characters) {
-          try {
-            if (memData.taggedText && memData.styles) {
-              await RichTextHelper.apply(node, memData.taggedText, memData.styles);
+    const restoredNodes = [];
+    for (const rec of recordsToRestore) {
+      try {
+        const node = await figma.getNodeByIdAsync(rec.id);
+        if (node && node.type === 'TEXT') {
+          if (rec.taggedText && rec.styles) {
+            await RichTextHelper.apply(node, rec.taggedText, rec.styles);
+          } else if (rec.text !== undefined) {
+            if (node.fontName === figma.mixed) {
+              try { await figma.loadFontAsync(node.getRangeFontName(0, 1)); } catch (e) {}
             } else {
-              if (node.fontName === figma.mixed) {
-                await figma.loadFontAsync(node.getRangeFontName(0, 1));
-              } else {
-                await figma.loadFontAsync(node.fontName);
-              }
-              node.characters = memData.text;
+              try { await figma.loadFontAsync(node.fontName); } catch (e) {}
             }
-            restored++;
-          } catch (e) {}
+            node.characters = rec.text;
+          }
+          restored++;
+          restoredNodes.push(node);
         }
+      } catch (err) {
+        console.error('[Undo Restore Error]', err);
       }
     }
 
+    if (restoredNodes.length > 0) {
+      try { figma.currentPage.selection = restoredNodes; } catch (e) {}
+    }
+
     if (restored > 0) {
-      figma.notify(`↩️ 已恢复 ${restored} 个图层至翻译前状态`);
+      figma.notify(`↩️ 已成功撤回，恢复 ${restored} 个图层至翻译前状态`);
     } else {
-      figma.notify('选中的图层没有有效的翻译记忆');
+      figma.notify('未能恢复图层内容，请重试');
     }
     
     sendToUI({
@@ -1766,6 +1805,7 @@ const Handlers = {
       requestId,
       payload: { taskId: requestId, message: `已撤回 ${restored} 个图层` },
     });
+    sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 
   // --- 3. Fill Handlers ---

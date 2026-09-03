@@ -1951,6 +1951,11 @@
 
           ${UIComponents.SettingGroup(
             UIComponents.SettingRow(
+              '数字与数据智能保护',
+              '百分比、金额、股票代码与时间不被篡改',
+              UIComponents.Switch(state.protectText !== false, 'toggleProtectText(this.checked)')
+            ) +
+            UIComponents.SettingRow(
               '保留富文本分段样式',
               '',
               UIComponents.Switch(state.preserveRichText, 'togglePreserveRichText(this.checked)')
@@ -3060,18 +3065,18 @@ echo "=========================================="
       savePluginState();
       render();
     };
-    window.toggleProtectText = function() {
-      state.protectText = !state.protectText;
+    window.toggleProtectText = function(checked) {
+      state.protectText = typeof checked === 'boolean' ? checked : !state.protectText;
       savePluginState();
       render();
     };
-    window.togglePreserveRichText = function() {
-      state.preserveRichText = !state.preserveRichText;
+    window.togglePreserveRichText = function(checked) {
+      state.preserveRichText = typeof checked === 'boolean' ? checked : !state.preserveRichText;
       savePluginState();
       render();
     };
-    window.toggleSmartCasing = function() {
-      state.smartCasing = !state.smartCasing;
+    window.toggleSmartCasing = function(checked) {
+      state.smartCasing = typeof checked === 'boolean' ? checked : !state.smartCasing;
       savePluginState();
       render();
     };
@@ -3970,6 +3975,63 @@ echo "=========================================="
     }
 
     // =====================================================================
+    // DATA & SYMBOL PROTECTION ENGINE (Guards numbers, currencies, tickers)
+    // =====================================================================
+    const DataProtectionEngine = {
+      COMMON_TICKERS: new Set([
+        'NVDA', 'TSLA', 'AAPL', 'MSFT', 'GOOG', 'GOOGL', 'AMZN', 'META', 'AMD', 'INTC',
+        'ADM', 'BABA', 'NFLX', 'DIS', 'PYPL', 'UBER', 'COIN', 'NKE', 'SBUX', 'ORCL',
+        'EURUSD', 'GBPUSD', 'USDJPY', 'NZDUSD', 'AUDUSD', 'USDCAD', 'USDCHF', 'EURGBP',
+        'EURJPY', 'GBPJPY', 'XAUUSD', 'XAGUSD', 'BTCUSD', 'ETHUSD', 'USDX', 'USOIL', 'UKOIL',
+        'SPX', 'NDX', 'DJI', 'VIX', 'US30', 'NAS100', 'SP500', 'HK0700', 'HK09988'
+      ]),
+
+      isProtected(rawText) {
+        if (!rawText || typeof rawText !== 'string') return false;
+        const text = rawText.replace(/<[^>]+>/g, '').trim();
+        if (!text) return true;
+
+        // 1. Strings with NO letters at all (pure numbers, signs, currencies, punctuation)
+        if (!/[a-zA-Z\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f]/.test(text)) {
+          return true;
+        }
+
+        // 2. Percentages or signed numbers: e.g. "+0.69%", "-0.20%", "+0.09%", "+0.05%"
+        if (/^[+-]?\s*[\d,.]+\s*[%％]$/.test(text)) {
+          return true;
+        }
+
+        // 3. Currency with number: e.g. "US$ 100", "HK$ 500", "100 USD", "50 EUR", "¥ 199.00", "$99"
+        if (/^(?:US\$|HK\$|AU\$|CA\$|RMB|USD|EUR|GBP|JPY|CNY|KRW)\s*[\d,.]+/i.test(text) ||
+            /^[\d,.]+\s*(?:USD|EUR|GBP|JPY|CNY|KRW|RMB)$/i.test(text)) {
+          return true;
+        }
+
+        // 4. Financial Tickers / Forex pairs / Stock codes:
+        const commonUIWords = new Set(['ALL', 'NEW', 'ADD', 'EDIT', 'HOME', 'VIEW', 'SAVE', 'MORE', 'NEXT', 'BACK', 'DONE', 'USER', 'MENU', 'HELP', 'SEND', 'INFO', 'CART', 'ITEM', 'TAG', 'TAB', 'PAGE', 'TOP', 'LIST', 'CODE', 'DATA', 'FILE', 'TYPE', 'DATE', 'NAME', 'POST', 'TEXT', 'ICON', 'OK']);
+        const upper = text.toUpperCase();
+        if (this.COMMON_TICKERS.has(upper)) {
+          return true;
+        }
+        if (/^[A-Z]{3,7}$/.test(text) && !commonUIWords.has(upper)) {
+          if (text === upper) return true;
+        }
+
+        // 5. Stock codes: e.g. '600519.SH', '00700.HK', 'NASDAQ:NVDA'
+        if (/^(?:[A-Z]{2,6}:[A-Z0-9]+|\d{5,6}\.(?:SH|SZ|HK|BJ))$/i.test(text)) {
+          return true;
+        }
+
+        // 6. Timestamps, durations, metrics:
+        if (/^(?:\d+:\d+(?::\d+)?(?:\s*(?:AM|PM))?|\d+(?:\.\d+)?\s*(?:ms|s|min|h|fps|px|pt|dp|rem|em|vh|vw|kb|mb|gb|tb|k|w|p)\b|v\d+(?:\.\d+)+)$/i.test(text)) {
+          return true;
+        }
+
+        return false;
+      }
+    };
+
+    // =====================================================================
     // SMART CASING ENGINE (Intelligent Title/Sentence & Acronym Capitalizer)
     // =====================================================================
     const SmartCasingEngine = {
@@ -4256,9 +4318,14 @@ echo "=========================================="
         const trimmed = (text || '').trim();
         if (!trimmed) return text;
         
+        // Data Protection: protect pure numbers, tickers, percentages, etc.
+        if (state.protectText !== false && DataProtectionEngine.isProtected(trimmed)) {
+          return text;
+        }
+
         // If the string does not contain any letters (Latin, CJK, Cyrillic, Arabic, Thai, etc.), it's likely just numbers/symbols
         if (!/[a-zA-Z\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f]/.test(trimmed)) {
-          return trimmed;
+          return text;
         }
 
         const cacheKey = `${targetLang}:${trimmed}`;
@@ -4329,6 +4396,11 @@ echo "=========================================="
         const resultMap = new Map();
 
         const toTranslate = uniqueTexts.filter(t => {
+          // Data Protection: keep numbers, tickers, currencies, percentages untouched
+          if (state.protectText !== false && DataProtectionEngine.isProtected(t)) {
+            resultMap.set(t, t);
+            return false;
+          }
           const src = this.guessSourceLang(t);
           if (src === targetLang && !src.startsWith('zh')) { resultMap.set(t, t); return false; }
           return true;
@@ -4482,7 +4554,11 @@ Output format: exactly one translated line per item with its number prefix "[0] 
           const rawTexts = nodeTexts.map(n => n.text);
           const resultMap = await UITranslationEngine.translateBatch(rawTexts, targetLanguage, customConfig);
           const results = nodeTexts.map(n => {
-            let trans = resultMap.get((n.text || '').trim()) || n.text;
+            const origTrimmed = (n.text || '').trim();
+            if (state.protectText !== false && DataProtectionEngine.isProtected(origTrimmed)) {
+              return { id: n.id, translated: n.text, richStyles: n.richStyles };
+            }
+            let trans = resultMap.get(origTrimmed) || n.text;
             if (state.smartCasing !== false && trans) {
               trans = SmartCasingEngine.format(trans, targetLanguage);
             }
@@ -4522,7 +4598,11 @@ Output format: exactly one translated line per item with its number prefix "[0] 
             const rawTexts = batch.nodeTexts.map(n => n.text);
             const resultMap = await UITranslationEngine.translateBatch(rawTexts, batch.targetLanguage, customConfig);
             const results = batch.nodeTexts.map(n => {
-              let trans = resultMap.get((n.text || '').trim()) || n.text;
+              const origTrimmed = (n.text || '').trim();
+              if (state.protectText !== false && DataProtectionEngine.isProtected(origTrimmed)) {
+                return { id: n.id, translated: n.text, richStyles: n.richStyles };
+              }
+              let trans = resultMap.get(origTrimmed) || n.text;
               if (state.smartCasing !== false && trans) {
                 trans = SmartCasingEngine.format(trans, batch.targetLanguage);
               }
