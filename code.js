@@ -1793,8 +1793,8 @@ const Handlers = {
 
   'crop/trim-png': async (requestId) => {
     const selection = figma.currentPage.selection;
-    if (selection.length === 0) {
-      figma.notify('请先选中需要裁切透明边缘的 PNG 图片图层', { error: true });
+    if (!selection || selection.length === 0) {
+      figma.notify('请先选中需要裁切透明边缘的 PNG 图片或图层', { error: true });
       sendToUI({
         type: 'task/failed',
         requestId,
@@ -1804,7 +1804,10 @@ const Handlers = {
     }
 
     const imageNodes = [];
-    for (const node of selection) {
+    
+    // Helper function to extract or export image data from a node
+    async function processCandidateNode(node) {
+      if (!node || node.removed) return;
       let hasImageFill = false;
       if ('fills' in node && Array.isArray(node.fills)) {
         for (const f of node.fills) {
@@ -1816,6 +1819,7 @@ const Handlers = {
                 const bytes = await image.getBytesAsync();
                 imageNodes.push({
                   nodeId: node.id,
+                  nodeType: node.type,
                   bytes,
                   width: node.width,
                   height: node.height,
@@ -1832,9 +1836,13 @@ const Handlers = {
 
       if (!hasImageFill) {
         try {
-          const bytes = await node.exportAsync({ format: 'PNG' });
+          const bytes = await node.exportAsync({
+            format: 'PNG',
+            constraint: { type: 'SCALE', value: 1 }
+          });
           imageNodes.push({
             nodeId: node.id,
+            nodeType: node.type,
             bytes,
             width: node.width,
             height: node.height,
@@ -1846,8 +1854,39 @@ const Handlers = {
       }
     }
 
+    for (const node of selection) {
+      // If user selected a container without image fills that has child layers with image fills, check children
+      if (node.type === 'FRAME' || node.type === 'GROUP' || node.type === 'SECTION') {
+        let foundDirectImageChild = false;
+        if ('findAll' in node) {
+          const imgChildren = node.findAll(c => {
+            if ('fills' in c && Array.isArray(c.fills)) {
+              return c.fills.some(f => f.type === 'IMAGE' && f.imageHash);
+            }
+            return false;
+          });
+          if (imgChildren.length > 0 && imgChildren.length <= 10) {
+            foundDirectImageChild = true;
+            for (const child of imgChildren) {
+              await processCandidateNode(child);
+            }
+          }
+        }
+        if (!foundDirectImageChild) {
+          await processCandidateNode(node);
+        }
+      } else {
+        await processCandidateNode(node);
+      }
+    }
+
     if (imageNodes.length === 0) {
-      figma.notify('未找到有效的图片数据', { error: true });
+      figma.notify('未找到有效的图片图层', { error: true });
+      sendToUI({
+        type: 'crop/completed',
+        requestId,
+        payload: { trimmedCount: 0 }
+      });
       return;
     }
 
@@ -1859,36 +1898,63 @@ const Handlers = {
   },
 
   'crop/apply-trimmed-image': async (requestId, payload) => {
-    const { nodeId, newBytes, origW, origH, cropX, cropY, cropW, cropH, noCropNeeded, type } = payload;
+    const { nodeId, newBytes, origW, origH, cropX, cropY, cropW, cropH, noCropNeeded, type, nodeType, topTrim, bottomTrim, leftTrim, rightTrim } = payload || {};
     const node = await figma.getNodeByIdAsync(nodeId);
-    if (!node || noCropNeeded || !newBytes) return;
+    if (!node || node.removed || noCropNeeded || !newBytes) {
+      sendToUI({ type: 'crop/completed', requestId, payload: { trimmedCount: 0 } });
+      return;
+    }
 
     try {
       const newImage = figma.createImage(newBytes);
-      
+      const scaleX = node.width / (origW || node.width);
+      const scaleY = node.height / (origH || node.height);
+      const newW = Math.max(1, Math.round(cropW * scaleX));
+      const newH = Math.max(1, Math.round(cropH * scaleY));
+      const dx = cropX * scaleX;
+      const dy = cropY * scaleY;
+
+      // Handle position with rotation
+      const rot = ('rotation' in node && typeof node.rotation === 'number') ? node.rotation : 0;
+      const rad = (rot * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      node.x += dx * cos - dy * sin;
+      node.y += dx * sin + dy * cos;
+
       if (type === 'image_fill' && 'fills' in node && Array.isArray(node.fills)) {
         const newFills = node.fills.map(f => {
           if (f.type === 'IMAGE') {
-            return { ...f, imageHash: newImage.hash };
+            return { ...f, imageHash: newImage.hash, scaleMode: 'FILL' };
           }
           return f;
         });
         node.fills = newFills;
-      } else {
+        node.resize(newW, newH);
+      } else if ('fills' in node && node.type !== 'GROUP') {
         node.fills = [{ type: 'IMAGE', scaleMode: 'FILL', imageHash: newImage.hash }];
+        node.resize(newW, newH);
+      } else {
+        // Group or container without direct fills
+        const parent = node.parent || figma.currentPage;
+        const index = parent.children.indexOf(node);
+        const rect = figma.createRectangle();
+        rect.name = node.name + ' (已裁切留白)';
+        rect.x = node.x;
+        rect.y = node.y;
+        rect.resize(newW, newH);
+        rect.fills = [{ type: 'IMAGE', scaleMode: 'FILL', imageHash: newImage.hash }];
+        parent.insertChild(Math.max(0, index), rect);
+        node.remove();
+        figma.currentPage.selection = [rect];
       }
 
-      const scaleX = node.width / origW;
-      const scaleY = node.height / origH;
-      
-      node.x += cropX * scaleX;
-      node.y += cropY * scaleY;
-      node.resize(Math.max(1, cropW * scaleX), Math.max(1, cropH * scaleY));
-
-      figma.notify('✂️ PNG 透明边缘已精确裁切');
+      figma.notify(`✂️ PNG 透明边缘已精确裁切 (上:${topTrim || 0}px 下:${bottomTrim || 0}px 左:${leftTrim || 0}px 右:${rightTrim || 0}px)`);
+      sendToUI({ type: 'crop/completed', requestId, payload: { trimmedCount: 1 } });
     } catch (e) {
       console.error('[Apply Trim Error]', e);
       figma.notify('裁切应用失败: ' + e.message, { error: true });
+      sendToUI({ type: 'crop/completed', requestId, payload: { error: e.message } });
     }
   },
 

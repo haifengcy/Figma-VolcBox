@@ -2272,7 +2272,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub); flex-shrink: 0;"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
                 <span class="setting-label" style="font-weight: 600;">裁切PNG透明边缘</span>
               </div>
-              <button class="btn btn-primary" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="sendAction('crop/trim-png')" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>执行</button>
+              <button class="btn btn-primary" id="btn-trim-png" style="height: 26px; padding: 0 12px; font-size: 11.5px;" onclick="executeTrimPng(this)" ${state.selection.totalSelected === 0 ? 'disabled' : ''}>${state.isCropping ? '裁切中...' : '执行'}</button>
             </div>
           </div>
         `;
@@ -2982,6 +2982,22 @@ echo "=========================================="
     // Tools & Settings methods
     window.sendAction = function(type, payload = {}) {
       parent.postMessage({ pluginMessage: { type, payload } }, '*');
+    };
+    window.executeTrimPng = function(btn) {
+      if (state.isCropping) return;
+      state.isCropping = true;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '裁切中...';
+      }
+      sendAction('crop/trim-png');
+      setTimeout(() => {
+        state.isCropping = false;
+        if (btn) {
+          btn.disabled = state.selection.totalSelected === 0;
+          btn.textContent = '执行';
+        }
+      }, 3500);
     };
     const saveCompressionSettings = () => {
       parent.postMessage({ pluginMessage: { type: 'settings/save', payload: { compression: state.settings.compression } } }, '*');
@@ -3776,48 +3792,122 @@ echo "=========================================="
         }
       },
 
+      'crop/completed'(payload) {
+        state.isCropping = false;
+        const btn = document.getElementById('btn-trim-png');
+        if (btn) {
+          btn.disabled = state.selection.totalSelected === 0;
+          btn.textContent = '执行';
+        }
+      },
+
       async 'crop/do-trim-images'(payload) {
         const { images } = payload || {};
-        if (!images || images.length === 0) return;
+        if (!images || images.length === 0) {
+          state.isCropping = false;
+          const btn = document.getElementById('btn-trim-png');
+          if (btn) { btn.disabled = state.selection.totalSelected === 0; btn.textContent = '执行'; }
+          return;
+        }
+
+        const ALPHA_THRESHOLD = 10; // Ignore faint invisible noise (< 4% opacity)
 
         for (const item of images) {
-          const { nodeId, bytes, type } = item;
+          const { nodeId, bytes, type, nodeType } = item;
           const blob = new Blob([bytes], { type: 'image/png' });
           const url = URL.createObjectURL(blob);
           const img = new Image();
 
           await new Promise((resolve) => {
             img.onload = () => {
+              const w = img.width;
+              const h = img.height;
               const canvas = document.createElement('canvas');
-              canvas.width = img.width;
-              canvas.height = img.height;
-              const ctx = canvas.getContext('2d');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d', { willReadFrequently: true });
               ctx.drawImage(img, 0, 0);
 
-              const imgData = ctx.getImageData(0, 0, img.width, img.height);
+              const imgData = ctx.getImageData(0, 0, w, h);
               const data = imgData.data;
 
-              let minX = img.width, minY = img.height, maxX = -1, maxY = -1;
-              for (let y = 0; y < img.height; y++) {
-                for (let x = 0; x < img.width; x++) {
-                  const alpha = data[(y * img.width + x) * 4 + 3];
-                  if (alpha > 5) {
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
+              // 1. Scan Top
+              let top = 0;
+              topLoop: for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                  if (data[(y * w + x) * 4 + 3] > ALPHA_THRESHOLD) {
+                    top = y;
+                    break topLoop;
+                  }
+                }
+                top = h;
+              }
+
+              // All transparent
+              if (top >= h) {
+                parent.postMessage({
+                  pluginMessage: {
+                    type: 'toast',
+                    payload: '💡 该图层为全透明图层，无需裁切'
+                  }
+                }, '*');
+                URL.revokeObjectURL(url);
+                state.isCropping = false;
+                const btn = document.getElementById('btn-trim-png');
+                if (btn) { btn.disabled = false; btn.textContent = '执行'; }
+                resolve();
+                return;
+              }
+
+              // 2. Scan Bottom
+              let bottom = h - 1;
+              bottomLoop: for (let y = h - 1; y >= top; y--) {
+                for (let x = 0; x < w; x++) {
+                  if (data[(y * w + x) * 4 + 3] > ALPHA_THRESHOLD) {
+                    bottom = y;
+                    break bottomLoop;
                   }
                 }
               }
 
-              if (minX <= maxX && minY <= maxY && (minX > 0 || minY > 0 || maxX < img.width - 1 || maxY < img.height - 1)) {
-                const cropW = maxX - minX + 1;
-                const cropH = maxY - minY + 1;
+              // 3. Scan Left
+              let left = 0;
+              leftLoop: for (let x = 0; x < w; x++) {
+                for (let y = top; y <= bottom; y++) {
+                  if (data[(y * w + x) * 4 + 3] > ALPHA_THRESHOLD) {
+                    left = x;
+                    break leftLoop;
+                  }
+                }
+                left = w;
+              }
+
+              // 4. Scan Right
+              let right = w - 1;
+              rightLoop: for (let x = w - 1; x >= left; x--) {
+                for (let y = top; y <= bottom; y++) {
+                  if (data[(y * w + x) * 4 + 3] > ALPHA_THRESHOLD) {
+                    right = x;
+                    break rightLoop;
+                  }
+                }
+              }
+
+              const topTrim = top;
+              const bottomTrim = h - 1 - bottom;
+              const leftTrim = left;
+              const rightTrim = w - 1 - right;
+
+              const hasTrim = topTrim > 0 || bottomTrim > 0 || leftTrim > 0 || rightTrim > 0;
+
+              if (hasTrim) {
+                const cropW = right - left + 1;
+                const cropH = bottom - top + 1;
                 const cropCanvas = document.createElement('canvas');
                 cropCanvas.width = cropW;
                 cropCanvas.height = cropH;
                 const cropCtx = cropCanvas.getContext('2d');
-                cropCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+                cropCtx.drawImage(canvas, left, top, cropW, cropH, 0, 0, cropW, cropH);
 
                 cropCanvas.toBlob(async (cropBlob) => {
                   const newBytes = new Uint8Array(await cropBlob.arrayBuffer());
@@ -3827,13 +3917,18 @@ echo "=========================================="
                       payload: {
                         nodeId,
                         newBytes,
-                        origW: img.width,
-                        origH: img.height,
-                        cropX: minX,
-                        cropY: minY,
+                        origW: w,
+                        origH: h,
+                        cropX: left,
+                        cropY: top,
                         cropW,
                         cropH,
-                        type
+                        topTrim,
+                        bottomTrim,
+                        leftTrim,
+                        rightTrim,
+                        type,
+                        nodeType
                       }
                     }
                   }, '*');
@@ -3844,15 +3939,24 @@ echo "=========================================="
                 parent.postMessage({
                   pluginMessage: {
                     type: 'toast',
-                    payload: '该图片周边没有多余透明边缘，无需裁切'
+                    payload: '💡 该图片四周已紧密贴边，没有多余透明边缘'
                   }
                 }, '*');
                 URL.revokeObjectURL(url);
+                state.isCropping = false;
+                const btn = document.getElementById('btn-trim-png');
+                if (btn) {
+                  btn.disabled = false;
+                  btn.textContent = '执行';
+                }
                 resolve();
               }
             };
             img.onerror = () => {
               URL.revokeObjectURL(url);
+              state.isCropping = false;
+              const btn = document.getElementById('btn-trim-png');
+              if (btn) { btn.disabled = false; btn.textContent = '执行'; }
               resolve();
             };
             img.src = url;
