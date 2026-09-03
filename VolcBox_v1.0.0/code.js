@@ -331,12 +331,21 @@ const SelectionEngine = {
       };
     }
 
+    const topColors = Array.from(colorFrequency.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map(item => ({
+        hex: item.hex,
+        count: item.score
+      }));
+
     return {
       totalSelected: selection.length,
       artboardCount,
       textNodeCount,
       colorLayerCount,
       dominantColor,
+      topColors,
       canSaveStyle: selection.length === 1 && colorLayerCount > 0,
       detectedSourceLanguage: 'auto',
       detectedSourceLanguageName: '自动检测',
@@ -669,9 +678,63 @@ function hslToRgb(h, s, l) {
   };
 }
 
-function adjustColorPaint(paint, offsetHue, offsetSat, offsetLit) {
+function clonePaints(paints) {
+  if (!Array.isArray(paints)) return [];
+  return paints.map(p => {
+    if (p.type === 'SOLID' && p.color) {
+      return {
+        ...p,
+        color: { r: p.color.r, g: p.color.g, b: p.color.b }
+      };
+    } else if (p.gradientStops && Array.isArray(p.gradientStops)) {
+      return {
+        ...p,
+        gradientStops: p.gradientStops.map(s => ({
+          ...s,
+          color: { r: s.color.r, g: s.color.g, b: s.color.b, a: s.color.a !== undefined ? s.color.a : 1 }
+        }))
+      };
+    }
+    return { ...p };
+  });
+}
+
+function hexToRgb01(hex) {
+  if (!hex) return null;
+  hex = hex.replace('#', '').trim();
+  if (hex.length === 3) {
+    hex = hex.split('').map(c => c + c).join('');
+  }
+  if (hex.length !== 6) return null;
+  return {
+    r: parseInt(hex.substring(0, 2), 16) / 255,
+    g: parseInt(hex.substring(2, 4), 16) / 255,
+    b: parseInt(hex.substring(4, 6), 16) / 255
+  };
+}
+
+function isColorClose(c1, c2, tolerance = 18) {
+  if (!c1 || !c2) return false;
+  const rDiff = Math.abs(Math.round(c1.r * 255) - Math.round(c2.r * 255));
+  const gDiff = Math.abs(Math.round(c1.g * 255) - Math.round(c2.g * 255));
+  const bDiff = Math.abs(Math.round(c1.b * 255) - Math.round(c2.b * 255));
+  return (rDiff + gDiff + bDiff) <= tolerance;
+}
+
+function adjustColorPaint(paint, offsetHue, offsetSat, offsetLit, protectNeutrals = true) {
   if (paint.type === 'SOLID') {
     const hsl = rgbToHsl(paint.color.r, paint.color.g, paint.color.b);
+
+    // If protectNeutrals is on, preserve pure white, pure black, and low-saturation grays
+    if (protectNeutrals) {
+      const isPureWhite = paint.color.r > 0.98 && paint.color.g > 0.98 && paint.color.b > 0.98;
+      const isPureBlack = paint.color.r < 0.05 && paint.color.g < 0.05 && paint.color.b < 0.05;
+      const isNeutralGray = hsl.s < 0.08;
+      if (isPureWhite || isPureBlack || isNeutralGray) {
+        return paint; // Protect neutral background/text
+      }
+    }
+
     let newH = (hsl.h + offsetHue) % 360;
     if (newH < 0) newH += 360;
     let newS = Math.max(0, Math.min(1, hsl.s + offsetSat / 100));
@@ -681,6 +744,14 @@ function adjustColorPaint(paint, offsetHue, offsetSat, offsetLit) {
   } else if (paint.type && paint.type.startsWith('GRADIENT_') && Array.isArray(paint.gradientStops)) {
     const newStops = paint.gradientStops.map(stop => {
       const hsl = rgbToHsl(stop.color.r, stop.color.g, stop.color.b);
+      if (protectNeutrals) {
+        const isPureWhite = stop.color.r > 0.98 && stop.color.g > 0.98 && stop.color.b > 0.98;
+        const isPureBlack = stop.color.r < 0.05 && stop.color.g < 0.05 && stop.color.b < 0.05;
+        const isNeutralGray = hsl.s < 0.08;
+        if (isPureWhite || isPureBlack || isNeutralGray) {
+          return stop;
+        }
+      }
       let newH = (hsl.h + offsetHue) % 360;
       if (newH < 0) newH += 360;
       let newS = Math.max(0, Math.min(1, hsl.s + offsetSat / 100));
@@ -701,9 +772,9 @@ function adjustColorPaint(paint, offsetHue, offsetSat, offsetLit) {
   return paint;
 }
 
-function adjustPaints(paints, offsetHue, offsetSat, offsetLit) {
+function adjustPaints(paints, offsetHue, offsetSat, offsetLit, protectNeutrals = true) {
   if (!Array.isArray(paints)) return paints;
-  return paints.map(p => adjustColorPaint(p, offsetHue, offsetSat, offsetLit));
+  return paints.map(p => adjustColorPaint(p, offsetHue, offsetSat, offsetLit, protectNeutrals));
 }
 
 function getAllColorNodes(nodes) {
@@ -2337,7 +2408,7 @@ const Handlers = {
   },
 
   'color/preview': async (requestId, payload) => {
-    const { hue, saturation, lightness, scope } = payload;
+    const { hue = 0, saturation = 0, lightness = 0, scope = 'all', protectNeutrals = true } = payload || {};
     const targetNodes = getCachedColorNodes();
     
     for (let i = 0; i < targetNodes.length; i++) {
@@ -2347,21 +2418,21 @@ const Handlers = {
       let original = OriginalColorState.get(node.id);
       if (!original) {
         original = {
-          fills: ('fills' in node && Array.isArray(node.fills)) ? JSON.parse(JSON.stringify(node.fills)) : [],
-          strokes: ('strokes' in node && Array.isArray(node.strokes)) ? JSON.parse(JSON.stringify(node.strokes)) : []
+          fills: ('fills' in node && Array.isArray(node.fills)) ? clonePaints(node.fills) : [],
+          strokes: ('strokes' in node && Array.isArray(node.strokes)) ? clonePaints(node.strokes) : []
         };
         OriginalColorState.set(node.id, original);
       }
       
       if ('fills' in node && (scope === 'all' || scope === 'fill') && original.fills.length > 0) {
         try {
-          node.fills = adjustPaints(original.fills, hue, saturation, lightness);
+          node.fills = adjustPaints(original.fills, hue, saturation, lightness, protectNeutrals);
         } catch (e) {}
       }
       
       if ('strokes' in node && (scope === 'all' || scope === 'stroke') && original.strokes.length > 0) {
         try {
-          node.strokes = adjustPaints(original.strokes, hue, saturation, lightness);
+          node.strokes = adjustPaints(original.strokes, hue, saturation, lightness, protectNeutrals);
         } catch (e) {}
       }
     }
@@ -2386,22 +2457,68 @@ const Handlers = {
   },
 
   'color/apply': async (requestId, payload) => {
-    const { hue = 0, saturation = 0, lightness = 0, scope = 'all' } = payload || {};
+    const { hue = 0, saturation = 0, lightness = 0, scope = 'all', protectNeutrals = true } = payload || {};
     const targetNodes = getAllColorNodes(figma.currentPage.selection);
     
     for (const node of targetNodes) {
       if (!OriginalColorState.has(node.id) && (hue !== 0 || saturation !== 0 || lightness !== 0)) {
         if ('fills' in node && (scope === 'all' || scope === 'fill') && Array.isArray(node.fills)) {
-          try { node.fills = adjustPaints(node.fills, hue, saturation, lightness); } catch(e){}
+          try { node.fills = adjustPaints(node.fills, hue, saturation, lightness, protectNeutrals); } catch(e){}
         }
         if ('strokes' in node && (scope === 'all' || scope === 'stroke') && Array.isArray(node.strokes)) {
-          try { node.strokes = adjustPaints(node.strokes, hue, saturation, lightness); } catch(e){}
+          try { node.strokes = adjustPaints(node.strokes, hue, saturation, lightness, protectNeutrals); } catch(e){}
         }
       }
     }
     OriginalColorState.clear();
     figma.notify('🎨 调色已应用');
     sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: '调色完成' } });
+  },
+
+  'color/replace-exact': async (requestId, payload) => {
+    const { sourceHex, targetHex, scope = 'all', matchTolerance = 18 } = payload || {};
+    const targetNodes = getAllColorNodes(figma.currentPage.selection);
+    const targetRgb = hexToRgb01(targetHex);
+    const sourceRgb = hexToRgb01(sourceHex);
+
+    if (!targetRgb || !sourceRgb) {
+      figma.notify('颜色代码解析失败', { error: true });
+      return;
+    }
+
+    let count = 0;
+    for (const node of targetNodes) {
+      let modified = false;
+      if ('fills' in node && (scope === 'all' || scope === 'fill') && Array.isArray(node.fills)) {
+        const newFills = node.fills.map(fill => {
+          if (fill.type === 'SOLID' && isColorClose(fill.color, sourceRgb, matchTolerance)) {
+            modified = true;
+            return { ...fill, color: targetRgb };
+          }
+          return fill;
+        });
+        if (modified) {
+          try { node.fills = newFills; } catch(e){}
+        }
+      }
+      if ('strokes' in node && (scope === 'all' || scope === 'stroke') && Array.isArray(node.strokes)) {
+        const newStrokes = node.strokes.map(stroke => {
+          if (stroke.type === 'SOLID' && isColorClose(stroke.color, sourceRgb, matchTolerance)) {
+            modified = true;
+            return { ...stroke, color: targetRgb };
+          }
+          return stroke;
+        });
+        if (modified) {
+          try { node.strokes = newStrokes; } catch(e){}
+        }
+      }
+      if (modified) count++;
+    }
+
+    figma.notify(`🎯 已将 ${count} 个图层的 ${sourceHex} 精准替换为 ${targetHex}`);
+    sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: `替换了 ${count} 处色彩` } });
+    sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 };
 

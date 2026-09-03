@@ -726,6 +726,43 @@
       transform: scale(0.9);
       color: var(--accent-red);
     }
+    .color-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-deck);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.12s ease;
+    }
+    .color-chip:hover {
+      border-color: var(--border-chassis);
+      background-color: var(--bg-active);
+    }
+    .color-chip.active {
+      border-color: var(--accent-red);
+      background-color: var(--bg-surface);
+      box-shadow: 0 0 0 1px var(--accent-red);
+    }
+    .brand-swatch-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,0.15);
+      transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+    .brand-swatch-dot:hover {
+      transform: scale(1.22);
+    }
+    .brand-swatch-dot:active {
+      transform: scale(0.92);
+    }
     .slider-num-input {
       border: none;
       background: transparent;
@@ -2272,35 +2309,73 @@
           </div>
 
           <div class="section-header" style="padding-top: 4px;">
-            <span class="section-title">智能主色匹配</span>
-            <span class="section-hint" id="tone-match-hint">${state.selection?.dominantColor ? '当前主色: ' + state.selection.dominantColor.hex : '吸色自动匹配整体色调'}</span>
+            <span class="section-title">选区色彩提取与替换</span>
+            <span class="section-hint">点击选区色彩可精准替换目标主色</span>
           </div>
 
           <div class="setting-group" style="margin-bottom: 6px;">
-            <div class="setting-row" style="padding: 7px 14px; min-height: 40px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div id="target-color-swatch" style="width: 22px; height: 22px; border-radius: 4px; background-color: ${state.targetToneColor || (state.selection?.dominantColor ? state.selection.dominantColor.hex : '#FF5500')}; border: 1px solid var(--border-deck); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); cursor: pointer;" onclick="pickToneColor()" title="点击通过取色器更改目标主色"></div>
-                <div style="display: flex; flex-direction: column; gap: 1px;">
-                  <span class="setting-label" style="font-size: 11px;">目标主色调</span>
-                  <span id="target-color-hex" style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">${state.targetToneColor || (state.selection?.dominantColor ? state.selection.dominantColor.hex : '#FF5500')}</span>
+            <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--border-subtle);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-weight: 500; color: var(--text-main);">已提取选区色彩</span>
+                <span style="font-size: 10.5px; color: var(--text-muted);">${state.selection?.topColors?.length || 0} 种色彩</span>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                ${(state.selection?.topColors && state.selection.topColors.length > 0) ? state.selection.topColors.map(c => `
+                  <div class="color-chip ${state.sourceReplaceColor === c.hex ? 'active' : ''}" onclick="setSourceReplaceColor('${c.hex}')" title="选中源色彩 ${c.hex}">
+                    <div style="width: 13px; height: 13px; border-radius: 3px; background-color: ${c.hex}; border: 1px solid rgba(0,0,0,0.12);"></div>
+                    <span style="font-family: var(--font-mono); font-size: 10px; font-weight: 600;">${c.hex}</span>
+                  </div>
+                `).join('') : `
+                  <span style="font-size: 10.5px; color: var(--text-muted);">画布中选中包含颜色的画板或图层即可自动提取</span>
+                `}
+              </div>
+            </div>
+
+            <div class="setting-row" style="padding: 8px 14px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle);">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 4px;" title="当前选中的源色彩">
+                  <div style="width: 18px; height: 18px; border-radius: 3px; background-color: ${state.sourceReplaceColor || (state.selection?.topColors?.[0]?.hex || '#0066CC')}; border: 1px solid var(--border-deck);"></div>
+                  <span style="font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;">${state.sourceReplaceColor || (state.selection?.topColors?.[0]?.hex || '#0066CC')}</span>
+                </div>
+                <span style="color: var(--text-muted); font-size: 11px;">➔</span>
+                <div style="display: flex; align-items: center; gap: 4px;" title="目标替换色彩">
+                  <div id="target-replace-swatch" style="width: 18px; height: 18px; border-radius: 3px; background-color: ${state.targetReplaceColor || '#FF5500'}; border: 1px solid var(--border-deck); cursor: pointer;" onclick="pickReplaceTargetColor()"></div>
+                  <input type="text" id="target-replace-hex" class="slider-num-input" style="width: 58px; text-align: left; padding: 0 4px; background: var(--bg-hover); border: 1px solid var(--border-deck); border-radius: 3px; height: 18px;" value="${state.targetReplaceColor || '#FF5500'}" onchange="setTargetReplaceColor(this.value)" />
                 </div>
               </div>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <button class="btn btn-secondary" style="height: 26px; padding: 0 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;" onclick="pickToneColor()" title="吸取屏幕颜色自动推导整体色调">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+
+              <div style="display: flex; align-items: center; gap: 5px;">
+                <button class="btn btn-secondary" style="height: 24px; padding: 0 7px; font-size: 10.5px; display: inline-flex; align-items: center; gap: 3px;" onclick="pickReplaceTargetColor()" title="吸管吸色">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2l4 4-8.5 8.5-4-4L14 2z"/>
                     <path d="M5.5 14.5l-2.5 5 5-2.5"/>
                     <circle cx="18" cy="6" r="1"/>
                   </svg>
-                  <span>吸管吸色</span>
+                  <span>吸色</span>
                 </button>
-                <input type="color" id="native-tone-color-picker" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" oninput="applyTargetToneColor(this.value)" />
+                <button class="btn btn-primary" style="height: 24px; padding: 0 10px; font-size: 11px;" onclick="executeColorReplace()" ${!state.selection?.colorLayerCount ? 'disabled' : ''}>替换主色</button>
+              </div>
+            </div>
+
+            <div class="setting-row" style="padding: 6px 14px; align-items: center; gap: 8px; background-color: var(--bg-hover);">
+              <span style="font-size: 10px; color: var(--text-muted); font-weight: 500;">推荐主色:</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="brand-swatch-dot" style="background-color: #FF5500;" onclick="setTargetReplaceColor('#FF5500')" title="火山橙"></div>
+                <div class="brand-swatch-dot" style="background-color: #0066CC;" onclick="setTargetReplaceColor('#0066CC')" title="科技蓝"></div>
+                <div class="brand-swatch-dot" style="background-color: #30D158;" onclick="setTargetReplaceColor('#30D158')" title="生机绿"></div>
+                <div class="brand-swatch-dot" style="background-color: #7000FF;" onclick="setTargetReplaceColor('#7000FF')" title="紫罗兰"></div>
+                <div class="brand-swatch-dot" style="background-color: #FFB800;" onclick="setTargetReplaceColor('#FFB800')" title="日落金"></div>
+                <div class="brand-swatch-dot" style="background-color: #1D1A16;" onclick="setTargetReplaceColor('#1D1A16')" title="极客黑"></div>
               </div>
             </div>
           </div>
 
-          <div class="section-header">
-            <span class="section-title">色彩调节 (HSL)</span>
+          <div class="section-header" style="justify-content: space-between; align-items: center;">
+            <span class="section-title">色彩整体调节 (HSL)</span>
+            <label style="font-size: 10px; color: var(--text-sub); display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
+              <input type="checkbox" id="chk-protect-neutrals" ${state.protectNeutrals !== false ? 'checked' : ''} onchange="state.protectNeutrals = this.checked; sendColorPreview();" style="accent-color: var(--accent-red); margin: 0; cursor: pointer;" />
+              <span>保护黑白灰</span>
+            </label>
           </div>
 
           <div class="setting-group">
@@ -3238,23 +3313,87 @@ echo "=========================================="
         deltaL = Math.max(-100, Math.min(100, Math.round(targetHsl.l - 50)));
       }
 
-      window.updateColor('hue', deltaH);
-      window.updateColor('saturation', deltaS);
-      window.updateColor('lightness', deltaL);
-
-      const swatchEl = document.getElementById('target-color-swatch');
-      if (swatchEl) swatchEl.style.backgroundColor = targetHex;
-      const hexEl = document.getElementById('target-color-hex');
-      if (hexEl) hexEl.textContent = targetHex;
-      const hintEl = document.getElementById('tone-match-hint');
-      if (hintEl) {
-        hintEl.textContent = base ? `${base.hex} ➔ ${targetHex}` : `已匹配至 ${targetHex}`;
-      }
+      window.batchUpdateColor(deltaH, deltaS, deltaL);
 
       parent.postMessage({
         pluginMessage: {
           type: 'notify',
           payload: { message: `🎯 已匹配主色调至 ${targetHex}` }
+        }
+      }, '*');
+    };
+
+    window.batchUpdateColor = function(h, s, l) {
+      state.hue = Math.max(-180, Math.min(180, h));
+      state.saturation = Math.max(-100, Math.min(100, s));
+      state.lightness = Math.max(-100, Math.min(100, l));
+
+      ['hue', 'saturation', 'lightness'].forEach(prop => {
+        const sliderEl = document.getElementById('slider-' + prop);
+        if (sliderEl) sliderEl.value = state[prop];
+        const numEl = document.getElementById('num-' + prop);
+        if (numEl) numEl.value = state[prop];
+      });
+
+      window.sendColorPreview();
+    };
+
+    window.setSourceReplaceColor = function(hex) {
+      state.sourceReplaceColor = hex.toUpperCase();
+      render();
+    };
+
+    window.setTargetReplaceColor = function(hex) {
+      if (!hex) return;
+      hex = hex.trim().toUpperCase();
+      if (!hex.startsWith('#')) hex = '#' + hex;
+      state.targetReplaceColor = hex;
+      const swatch = document.getElementById('target-replace-swatch');
+      if (swatch) swatch.style.backgroundColor = hex;
+      const input = document.getElementById('target-replace-hex');
+      if (input && input.value !== hex) input.value = hex;
+    };
+
+    let isPickingReplaceColor = false;
+    window.pickReplaceTargetColor = async function() {
+      if (isPickingReplaceColor) return;
+      if (window.EyeDropper) {
+        isPickingReplaceColor = true;
+        try {
+          const eyeDropper = new EyeDropper();
+          const result = await eyeDropper.open();
+          if (result && result.sRGBHex) {
+            window.setTargetReplaceColor(result.sRGBHex);
+          }
+        } catch (e) {
+          // User aborted
+        } finally {
+          isPickingReplaceColor = false;
+        }
+        return;
+      }
+      const current = state.targetReplaceColor || '#FF5500';
+      const userHex = prompt('请输入目标颜色 HEX 代码:', current);
+      if (userHex) {
+        window.setTargetReplaceColor(userHex);
+      }
+    };
+
+    window.executeColorReplace = function() {
+      const source = state.sourceReplaceColor || state.selection?.topColors?.[0]?.hex;
+      const target = state.targetReplaceColor || '#FF5500';
+      if (!source || !target) {
+        window.showToast('请先选择需要替换的色彩');
+        return;
+      }
+      parent.postMessage({
+        pluginMessage: {
+          type: 'color/replace-exact',
+          payload: {
+            sourceHex: source,
+            targetHex: target,
+            scope: state.colorScope || 'all'
+          }
         }
       }, '*');
     };
@@ -3290,7 +3429,8 @@ echo "=========================================="
         hue: state.hue,
         saturation: state.saturation,
         lightness: state.lightness,
-        scope: state.colorScope
+        scope: state.colorScope,
+        protectNeutrals: state.protectNeutrals !== false
       };
 
       if (!isProcessingPreview) {
@@ -3337,14 +3477,19 @@ echo "=========================================="
       parent.postMessage({
         pluginMessage: {
           type: 'color/apply',
-          payload: { hue: state.hue, saturation: state.saturation, lightness: state.lightness, scope: state.colorScope }
+          payload: {
+            hue: state.hue,
+            saturation: state.saturation,
+            lightness: state.lightness,
+            scope: state.colorScope,
+            protectNeutrals: state.protectNeutrals !== false
+          }
         }
       }, '*');
       // Reset sliders visually since the applied colors are now the new baseline
       state.hue = 0;
       state.saturation = 0;
       state.lightness = 0;
-      
       ['hue', 'saturation', 'lightness'].forEach(prop => {
         const slider = document.getElementById('slider-' + prop);
         const num = document.getElementById('num-' + prop);
