@@ -667,50 +667,40 @@
       cursor: not-allowed;
     }
 
-    /* --- SLIDERS --- */
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-      padding: 4px 0;
-    }
-    .slider-row {
-      display: flex;
+    /* --- COLOR SLIDER ROWS (Design System Spec) --- */
+    .setting-row.color-slider-row {
       flex-direction: column;
-      gap: 5px;
-      padding: 6px 0;
+      align-items: stretch;
+      gap: 7px;
+      padding: 10px 14px 11px 14px;
       user-select: none;
+      min-height: 54px;
     }
-    .slider-header {
+    .color-slider-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-    }
-    .slider-label {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--text-main);
+      width: 100%;
     }
     .slider-val-box {
       display: inline-flex;
       align-items: center;
-      position: relative;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
+      background-color: var(--bg-hover);
+      border: 1px solid var(--border-deck);
       border-radius: 4px;
-      padding: 0 4px 0 2px;
+      padding: 0 4px 0 6px;
       height: 20px;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
     }
     .slider-val-box:hover {
       border-color: var(--border-chassis);
-      background: var(--bg-hover);
+      background-color: var(--bg-active);
     }
     .slider-val-box:focus-within {
       border-color: var(--accent-red);
+      background-color: var(--bg-surface);
       box-shadow: 0 0 0 2px rgba(255, 85, 0, 0.15);
-      background: var(--bg-surface);
     }
     .slider-num-input {
       border: none;
@@ -733,36 +723,37 @@
     }
     .slider-val-unit {
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 10.5px;
       font-weight: 600;
-      color: var(--text-sub);
+      color: var(--text-muted);
       user-select: none;
       pointer-events: none;
+      margin-left: 1px;
     }
     .slider-track-wrap {
       position: relative;
       display: flex;
       align-items: center;
       width: 100%;
-      height: 18px;
+      height: 16px;
       cursor: pointer;
     }
     .slider-input {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 6px;
+      height: 4px;
       background: var(--bg-hover);
-      border-radius: 3px;
+      border-radius: 2px;
       outline: none;
       cursor: pointer;
       touch-action: none;
       margin: 0;
       border: 1px solid var(--border-subtle);
-      transition: background 0.15s ease;
+      transition: background 0.12s ease;
     }
     .slider-input:hover {
-      background: var(--bg-active);
+      background: var(--border-deck);
     }
     .slider-input::-webkit-slider-thumb {
       -webkit-appearance: none;
@@ -773,12 +764,12 @@
       background: var(--accent-red);
       cursor: grab;
       border: 2px solid #FFFFFF;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
       transition: transform 0.1s ease, box-shadow 0.1s ease;
     }
     body.theme-dark .slider-input::-webkit-slider-thumb {
       border: 2px solid #171922;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
     }
     .slider-input:hover::-webkit-slider-thumb {
       transform: scale(1.15);
@@ -786,7 +777,7 @@
     .slider-input:active::-webkit-slider-thumb {
       cursor: grabbing;
       transform: scale(1.22);
-      box-shadow: 0 0 0 4px rgba(255, 85, 0, 0.25);
+      box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.25);
     }
     .status-banner {
       display: flex;
@@ -2261,9 +2252,9 @@
           </div>
 
           <div class="setting-group">
-            <div class="slider-row" onwheel="handleColorWheel(event, 'hue')" ondblclick="resetColorProp('hue')">
-              <div class="slider-header">
-                <span class="slider-label">色相 (Hue)</span>
+            <div class="setting-row color-slider-row" onwheel="handleColorWheel(event, 'hue')" ondblclick="resetColorProp('hue')">
+              <div class="color-slider-header">
+                <span class="setting-label">色相 (Hue)</span>
                 <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
                   <input type="number" id="num-hue" class="slider-num-input" min="-180" max="180" step="1" value="${state.hue}" 
                          oninput="updateColorFromInput('hue', this.value)" 
@@ -2281,9 +2272,9 @@
               </div>
             </div>
 
-            <div class="slider-row" onwheel="handleColorWheel(event, 'saturation')" ondblclick="resetColorProp('saturation')">
-              <div class="slider-header">
-                <span class="slider-label">饱和度 (Saturation)</span>
+            <div class="setting-row color-slider-row" onwheel="handleColorWheel(event, 'saturation')" ondblclick="resetColorProp('saturation')">
+              <div class="color-slider-header">
+                <span class="setting-label">饱和度 (Saturation)</span>
                 <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
                   <input type="number" id="num-saturation" class="slider-num-input" min="-100" max="100" step="1" value="${state.saturation}" 
                          oninput="updateColorFromInput('saturation', this.value)" 
@@ -2301,9 +2292,9 @@
               </div>
             </div>
 
-            <div class="slider-row" onwheel="handleColorWheel(event, 'lightness')" ondblclick="resetColorProp('lightness')">
-              <div class="slider-header">
-                <span class="slider-label">明度 (Lightness)</span>
+            <div class="setting-row color-slider-row" onwheel="handleColorWheel(event, 'lightness')" ondblclick="resetColorProp('lightness')">
+              <div class="color-slider-header">
+                <span class="setting-label">明度 (Lightness)</span>
                 <div class="slider-val-box" title="可直接输入数值，滚轮滑动或双击重置为0">
                   <input type="number" id="num-lightness" class="slider-num-input" min="-100" max="100" step="1" value="${state.lightness}" 
                          oninput="updateColorFromInput('lightness', this.value)" 
