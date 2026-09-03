@@ -1412,6 +1412,7 @@
       translateMode: 'text',
       protectText: true,
       preserveRichText: true,
+      smartCasing: true,
       isTranslating: false,
       langView: 'pinned',    // 'pinned' | 'all' | 'manage'
       langSearch: '',
@@ -1443,6 +1444,7 @@
           translateMode: 'text',
           protectText: true,
           preserveRichText: true,
+          smartCasing: true,
           profiles: []
         },
         fill: {
@@ -1482,6 +1484,7 @@
       state.settings.translation.translateMode = state.translateMode;
       state.settings.translation.protectText = state.protectText;
       state.settings.translation.preserveRichText = state.preserveRichText;
+      state.settings.translation.smartCasing = state.smartCasing;
 
       state.settings.fill.fillLines = state.fillLines;
       state.settings.fill.fillPrefix = state.fillPrefix;
@@ -1926,6 +1929,11 @@
               '保留富文本分段样式',
               '',
               UIComponents.Switch(state.preserveRichText, 'togglePreserveRichText(this.checked)')
+            ) +
+            UIComponents.SettingRow(
+              '智能大小写规范',
+              '单词首字母大写 · 句子首字母及专有名词规范',
+              UIComponents.Switch(state.smartCasing !== false, 'toggleSmartCasing(this.checked)')
             ),
             'margin-top: 4px;'
           )}
@@ -2976,6 +2984,11 @@ echo "=========================================="
       savePluginState();
       render();
     };
+    window.toggleSmartCasing = function() {
+      state.smartCasing = !state.smartCasing;
+      savePluginState();
+      render();
+    };
     window.startTranslation = function() {
       state.isTranslating = true;
       render();
@@ -3871,6 +3884,259 @@ echo "=========================================="
     }
 
     // =====================================================================
+    // SMART CASING ENGINE (Intelligent Title/Sentence & Acronym Capitalizer)
+    // =====================================================================
+    const SmartCasingEngine = {
+      acronymMap: {
+        'id': 'ID',
+        'api': 'API',
+        'ui': 'UI',
+        'ux': 'UX',
+        'url': 'URL',
+        'uri': 'URI',
+        'vip': 'VIP',
+        'faq': 'FAQ',
+        'ok': 'OK',
+        'ai': 'AI',
+        'otp': 'OTP',
+        'sms': 'SMS',
+        'pdf': 'PDF',
+        'png': 'PNG',
+        'jpg': 'JPG',
+        'jpeg': 'JPEG',
+        'svg': 'SVG',
+        'gif': 'GIF',
+        'cpu': 'CPU',
+        'ram': 'RAM',
+        'rom': 'ROM',
+        'sim': 'SIM',
+        'pin': 'PIN',
+        'sdk': 'SDK',
+        'qr': 'QR',
+        'dns': 'DNS',
+        'ip': 'IP',
+        'http': 'HTTP',
+        'https': 'HTTPS',
+        'ftp': 'FTP',
+        'ssh': 'SSH',
+        'ssl': 'SSL',
+        'tls': 'TLS',
+        'mac': 'Mac',
+        'os': 'OS',
+        'ios': 'iOS',
+        'vr': 'VR',
+        'ar': 'AR',
+        'mfa': 'MFA',
+        '2fa': '2FA',
+        'pos': 'POS',
+        'atm': 'ATM',
+        'cvv': 'CVV',
+        'csv': 'CSV',
+        'tsv': 'TSV',
+        'html': 'HTML',
+        'css': 'CSS',
+        'js': 'JS',
+        'json': 'JSON',
+        'xml': 'XML',
+        'sql': 'SQL',
+        'db': 'DB',
+        'app': 'App',
+      },
+
+      properNounMap: {
+        'monday': 'Monday', 'tuesday': 'Tuesday', 'wednesday': 'Wednesday',
+        'thursday': 'Thursday', 'friday': 'Friday', 'saturday': 'Saturday', 'sunday': 'Sunday',
+        'january': 'January', 'february': 'February', 'march': 'March', 'april': 'April',
+        'may': 'May', 'june': 'June', 'july': 'July', 'august': 'August',
+        'september': 'September', 'october': 'October', 'november': 'November', 'december': 'December',
+        'google': 'Google', 'apple': 'Apple', 'microsoft': 'Microsoft', 'figma': 'Figma',
+        'android': 'Android', 'windows': 'Windows', 'linux': 'Linux',
+        'facebook': 'Facebook', 'twitter': 'Twitter', 'instagram': 'Instagram',
+        'tiktok': 'TikTok', 'wechat': 'WeChat', 'alipay': 'Alipay', 'youtube': 'YouTube',
+        'whatsapp': 'WhatsApp', 'telegram': 'Telegram', 'volcengine': 'Volcengine',
+        'english': 'English', 'chinese': 'Chinese', 'japanese': 'Japanese', 'korean': 'Korean',
+        'russian': 'Russian', 'french': 'French', 'german': 'German', 'spanish': 'Spanish',
+        'bulgarian': 'Bulgarian', 'italian': 'Italian', 'portuguese': 'Portuguese'
+      },
+
+      titleMinorWords: new Set([
+        'a', 'an', 'the',
+        'and', 'but', 'or', 'nor', 'for', 'yet', 'so',
+        'as', 'at', 'by', 'for', 'in', 'of', 'on', 'per', 'to', 'via', 'with', 'from', 'into', 'onto'
+      ]),
+
+      capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+      },
+
+      formatWordToken(token, isFirstWord = false, isTitle = false, isEnglish = true) {
+        if (!token) return '';
+        if (/^[{%$#@<]/.test(token) || /[%}>]$/.test(token)) return token;
+
+        const match = token.match(/^([^a-zA-Z\u00C0-\u024F\u0400-\u04FF]*)(.*?)([^a-zA-Z\u00C0-\u024F\u0400-\u04FF]*)$/);
+        if (!match) return token;
+
+        const prefix = match[1] || '';
+        const core = match[2] || '';
+        const suffix = match[3] || '';
+
+        if (!core) return token;
+
+        const lower = core.toLowerCase();
+
+        // 1. Check Acronyms
+        if (this.acronymMap[lower]) {
+          return prefix + this.acronymMap[lower] + suffix;
+        }
+
+        // 2. English Pronoun "I" and contractions
+        if (isEnglish) {
+          if (lower === 'i') return prefix + 'I' + suffix;
+          if (lower === "i'm" || lower === "i’m") return prefix + "I'm" + suffix;
+          if (lower === "i'll" || lower === "i’ll") return prefix + "I'll" + suffix;
+          if (lower === "i've" || lower === "i’ve") return prefix + "I've" + suffix;
+          if (lower === "i'd" || lower === "i’d") return prefix + "I'd" + suffix;
+        }
+
+        // 3. Proper Nouns
+        if (this.properNounMap[lower]) {
+          return prefix + this.properNounMap[lower] + suffix;
+        }
+
+        // 4. In Title / Button Phrase (English Title Case)
+        if (isTitle && isEnglish) {
+          if (!isFirstWord && this.titleMinorWords.has(lower)) {
+            return prefix + lower + suffix;
+          }
+          return prefix + this.capitalize(lower) + suffix;
+        }
+
+        // 5. First word of sentence or single word
+        if (isFirstWord) {
+          return prefix + this.capitalize(lower) + suffix;
+        }
+
+        // 6. Non-first word in sentence: keep lowercase
+        return prefix + lower + suffix;
+      },
+
+      formatSentence(sentence, isEnglish) {
+        if (!sentence) return '';
+        const tokens = sentence.split(/(\s+)/);
+        let hasFoundFirstWord = false;
+
+        return tokens.map(token => {
+          if (!token || /^\s+$/.test(token)) return token;
+
+          const isFirst = !hasFoundFirstWord;
+          if (/[a-zA-Z\u00C0-\u024F\u0400-\u04FF]/.test(token)) {
+            hasFoundFirstWord = true;
+          }
+
+          return this.formatWordToken(token, isFirst, false, isEnglish);
+        }).join('');
+      },
+
+      formatPlainText(text, targetLang) {
+        if (!text || typeof text !== 'string') return text;
+        const lines = text.split('\n');
+
+        return lines.map(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return line;
+
+          const isEnglish = (targetLang || '').toLowerCase().startsWith('en');
+
+          if (!/[a-zA-Z\u00C0-\u024F\u0400-\u04FF]/.test(trimmed)) {
+            return line.replace(/\b([a-zA-Z]{2,5})\b/g, (match) => {
+              const lower = match.toLowerCase();
+              return this.acronymMap[lower] || this.properNounMap[lower] || match;
+            });
+          }
+
+          const words = trimmed.split(/\s+/).filter(Boolean);
+          const wordCount = words.length;
+
+          // 1. Single Word
+          if (wordCount === 1) {
+            const formatted = this.formatWordToken(trimmed, true, true, isEnglish);
+            return line.replace(trimmed, formatted);
+          }
+
+          // 2. Determine if it's a Sentence or Short UI Label/Title
+          const endsWithSentencePunct = /[.!?。！？]$/.test(trimmed);
+          const hasSentenceBreak = /[.!?。！？]\s+[a-zA-Z\u00C0-\u024F\u0400-\u04FF]/.test(trimmed);
+          const isSentence = hasSentenceBreak || (endsWithSentencePunct && wordCount > 3) || wordCount > 6;
+
+          if (!isSentence) {
+            if (isEnglish) {
+              const tokens = trimmed.split(/(\s+)/);
+              const meaningfulWords = tokens.filter(t => t && !/^\s+$/.test(t));
+              const lastMeaningfulIndex = meaningfulWords.length - 1;
+
+              let wordIdx = 0;
+              const formatted = tokens.map(token => {
+                if (!token || /^\s+$/.test(token)) return token;
+                const isFirst = (wordIdx === 0);
+                const isLast = (wordIdx === lastMeaningfulIndex);
+                wordIdx++;
+                return this.formatWordToken(token, isFirst || isLast, true, isEnglish);
+              }).join('');
+              return line.replace(trimmed, formatted);
+            } else {
+              const tokens = trimmed.split(/(\s+)/);
+              let hasFoundFirst = false;
+              const formatted = tokens.map(token => {
+                if (!token || /^\s+$/.test(token)) return token;
+                const isFirst = !hasFoundFirst;
+                if (/[a-zA-Z\u00C0-\u024F\u0400-\u04FF]/.test(token)) hasFoundFirst = true;
+                return this.formatWordToken(token, isFirst, false, isEnglish);
+              }).join('');
+              return line.replace(trimmed, formatted);
+            }
+          }
+
+          // 3. Full Sentence(s)
+          const sentenceRegex = /([^.!?。！？]+(?:[.!?。！？]+|$))/g;
+          const sentenceMatches = trimmed.match(sentenceRegex) || [trimmed];
+
+          const formattedSentences = sentenceMatches.map(s => this.formatSentence(s, isEnglish)).join('');
+          return line.replace(trimmed, formattedSentences);
+        }).join('\n');
+      },
+
+      format(text, targetLang) {
+        if (!text || typeof text !== 'string') return text;
+        if (/<\/?\d+>/.test(text)) {
+          const tags = [];
+          let plain = '';
+          let lastIndex = 0;
+          const regex = /<\/?\d+>/g;
+          let match;
+          while ((match = regex.exec(text)) !== null) {
+            plain += text.substring(lastIndex, match.index);
+            tags.push({ tag: match[0], plainIndex: plain.length });
+            lastIndex = regex.lastIndex;
+          }
+          plain += text.substring(lastIndex);
+
+          const formattedPlain = this.formatPlainText(plain, targetLang);
+
+          let result = '';
+          let prevIndex = 0;
+          for (const item of tags) {
+            result += formattedPlain.substring(prevIndex, item.plainIndex) + item.tag;
+            prevIndex = item.plainIndex;
+          }
+          result += formattedPlain.substring(prevIndex);
+          return result;
+        }
+        return this.formatPlainText(text, targetLang);
+      }
+    };
+
+    // =====================================================================
     // UI-SIDE TRANSLATION ENGINE (Has Network Access)
     // =====================================================================
     const UITranslationEngine = {
@@ -3915,6 +4181,8 @@ echo "=========================================="
         const srcLang = this.guessSourceLang(trimmed);
         if (srcLang === targetLang && !srcLang.startsWith('zh')) return trimmed;
 
+        let resText = null;
+
         // Channel 1: Google GTX Direct
         try {
           const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(trimmed)}`;
@@ -3922,47 +4190,50 @@ echo "=========================================="
           if (res.ok) {
             const data = await res.json();
             if (data && data[0]) {
-              const resText = data[0].map(item => item[0]).join('');
-              if (resText && resText !== trimmed) {
-                this.cache.set(cacheKey, resText);
-                return resText;
-              }
+              resText = data[0].map(item => item[0]).join('');
             }
           }
         } catch (e) {}
 
         // Channel 2: Google Dict
-        try {
-          const dictUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=${encodeURIComponent(targetLang)}&q=${encodeURIComponent(trimmed)}`;
-          const res = await this.fetchWithTimeout(dictUrl, {}, 8000);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && Array.isArray(data) && data[0]) {
-              const resText = Array.isArray(data[0]) ? data[0][0] : (typeof data[0] === 'string' ? data[0] : null);
-              if (resText && resText !== trimmed) {
-                this.cache.set(cacheKey, resText);
-                return resText;
+        if (!resText) {
+          try {
+            const dictUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=${encodeURIComponent(targetLang)}&q=${encodeURIComponent(trimmed)}`;
+            const res = await this.fetchWithTimeout(dictUrl, {}, 8000);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && Array.isArray(data) && data[0]) {
+                resText = Array.isArray(data[0]) ? data[0][0] : (typeof data[0] === 'string' ? data[0] : null);
               }
             }
-          }
-        } catch (e) {}
+          } catch (e) {}
+        }
 
         // Channel 3: MyMemory API
-        try {
-          const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=${encodeURIComponent(srcLang)}|${encodeURIComponent(targetLang)}`;
-          const res = await this.fetchWithTimeout(myMemoryUrl, {}, 8000);
-          if (res.ok) {
-            const data = await res.json();
-            const resText = data?.responseData?.translatedText;
-            if (resText && 
-                !resText.includes('MYMEMORY WARNING') && 
-                !resText.includes('INVALID SOURCE LANGUAGE') && 
-                resText.toUpperCase() !== trimmed.toUpperCase()) {
-              this.cache.set(cacheKey, resText);
-              return resText;
+        if (!resText) {
+          try {
+            const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=${encodeURIComponent(srcLang)}|${encodeURIComponent(targetLang)}`;
+            const res = await this.fetchWithTimeout(myMemoryUrl, {}, 8000);
+            if (res.ok) {
+              const data = await res.json();
+              const memText = data?.responseData?.translatedText;
+              if (memText && 
+                  !memText.includes('MYMEMORY WARNING') && 
+                  !memText.includes('INVALID SOURCE LANGUAGE') && 
+                  memText.toUpperCase() !== trimmed.toUpperCase()) {
+                resText = memText;
+              }
             }
+          } catch (e) {}
+        }
+
+        if (resText && resText !== trimmed) {
+          if (state.smartCasing !== false) {
+            resText = SmartCasingEngine.format(resText, targetLang);
           }
-        } catch (e) {}
+          this.cache.set(cacheKey, resText);
+          return resText;
+        }
 
         return trimmed;
       },
@@ -3993,7 +4264,15 @@ echo "=========================================="
               body: JSON.stringify({
                 model: customConfig.model || 'deepseek-chat',
                 messages: [
-                  { role: 'system', content: `You are a professional UI/UX localization translator. Translate each numbered item to "${targetLang}". Output format: exactly one translated line per item with its number prefix "[0] ...", "[1] ...". Do not add comments or explanations. Keep placeholders like {name}, %s, $1 intact.` },
+                  { 
+                    role: 'system', 
+                    content: `You are a professional UI/UX localization translator. Translate each numbered item to "${targetLang}".
+Capitalization rules:
+- Single words, buttons, tabs, menu items, and titles: use Title Case or Capitalize the first letter (e.g. "Confirm", "Settings", "Add to Cart", "Sign In").
+- Sentences, descriptions, hints, and error messages: use Sentence case (capitalize only the first word and proper nouns/acronyms; do not capitalize common words inside sentences).
+- Acronyms (e.g. ID, API, UI, URL, VIP, FAQ, OK, AI): preserve or format in standard uppercase.
+Output format: exactly one translated line per item with its number prefix "[0] ...", "[1] ...". Do not add comments or explanations. Keep placeholders like {name}, %s, $1 intact.` 
+                  },
                   { role: 'user', content: prompt },
                 ],
                 temperature: 0.1,
@@ -4059,6 +4338,15 @@ echo "=========================================="
           }
         }
 
+        // 3. Post-processing: Apply Smart Casing to all results
+        if (state.smartCasing !== false) {
+          for (const [key, val] of resultMap.entries()) {
+            if (val) {
+              resultMap.set(key, SmartCasingEngine.format(val, targetLang));
+            }
+          }
+        }
+
         return resultMap;
       }
     };
@@ -4077,6 +4365,7 @@ echo "=========================================="
           if (tr?.translateMode) state.translateMode = tr.translateMode;
           if (typeof tr?.protectText === 'boolean') state.protectText = tr.protectText;
           if (typeof tr?.preserveRichText === 'boolean') state.preserveRichText = tr.preserveRichText;
+          if (typeof tr?.smartCasing === 'boolean') state.smartCasing = tr.smartCasing;
           const fl = state.settings.fill;
           if (fl?.fillLines?.length > 0) state.fillLines = [...fl.fillLines];
           if (fl?.fillPrefix !== undefined) state.fillPrefix = fl.fillPrefix;
@@ -4106,11 +4395,17 @@ echo "=========================================="
         try {
           const rawTexts = nodeTexts.map(n => n.text);
           const resultMap = await UITranslationEngine.translateBatch(rawTexts, targetLanguage, customConfig);
-          const results = nodeTexts.map(n => ({
-            id: n.id,
-            translated: resultMap.get((n.text || '').trim()) || n.text,
-            richStyles: n.richStyles
-          }));
+          const results = nodeTexts.map(n => {
+            let trans = resultMap.get((n.text || '').trim()) || n.text;
+            if (state.smartCasing !== false && trans) {
+              trans = SmartCasingEngine.format(trans, targetLanguage);
+            }
+            return {
+              id: n.id,
+              translated: trans,
+              richStyles: n.richStyles
+            };
+          });
 
           parent.postMessage({
             pluginMessage: {
@@ -4140,11 +4435,17 @@ echo "=========================================="
           for (const batch of batches) {
             const rawTexts = batch.nodeTexts.map(n => n.text);
             const resultMap = await UITranslationEngine.translateBatch(rawTexts, batch.targetLanguage, customConfig);
-            const results = batch.nodeTexts.map(n => ({
-              id: n.id,
-              translated: resultMap.get((n.text || '').trim()) || n.text,
-              richStyles: n.richStyles
-            }));
+            const results = batch.nodeTexts.map(n => {
+              let trans = resultMap.get((n.text || '').trim()) || n.text;
+              if (state.smartCasing !== false && trans) {
+                trans = SmartCasingEngine.format(trans, batch.targetLanguage);
+              }
+              return {
+                id: n.id,
+                translated: trans,
+                richStyles: n.richStyles
+              };
+            });
             allResults.push(...results);
           }
 
@@ -4676,6 +4977,7 @@ echo "=========================================="
             if (tr?.translateMode) state.translateMode = tr.translateMode;
             if (typeof tr?.protectText === 'boolean') state.protectText = tr.protectText;
             if (typeof tr?.preserveRichText === 'boolean') state.preserveRichText = tr.preserveRichText;
+            if (typeof tr?.smartCasing === 'boolean') state.smartCasing = tr.smartCasing;
             const fl = state.settings.fill;
             if (fl?.fillLines?.length > 0) state.fillLines = [...fl.fillLines];
             if (fl?.fillPrefix !== undefined) state.fillPrefix = fl.fillPrefix;

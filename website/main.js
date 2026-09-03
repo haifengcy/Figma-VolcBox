@@ -46,10 +46,19 @@ const MockupViews = {
       </div>
 
       <div class="mockup-setting-group">
-        <div class="mockup-setting-row">
-          <span style="font-size: 11.5px; font-weight: 500;">保留富文本分段样式</span>
-          <div style="width: 36px; height: 20px; border-radius: 10px; background: var(--accent-red); position: relative; cursor: pointer;">
-            <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; right: 2px; top: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+        <div class="mockup-setting-row" style="padding: 6px 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle);">
+          <span style="font-size: 11px; font-weight: 500;">保留富文本分段样式</span>
+          <div style="width: 32px; height: 18px; border-radius: 9px; background: var(--accent-red); position: relative; cursor: pointer;">
+            <div style="width: 14px; height: 14px; border-radius: 50%; background: #FFF; position: absolute; right: 2px; top: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+          </div>
+        </div>
+        <div class="mockup-setting-row" style="padding: 6px 14px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 11px; font-weight: 500;">智能大小写规范</span>
+            <span style="font-size: 9.5px; color: var(--text-muted);">单词首字母 · 句子与专有名词规范</span>
+          </div>
+          <div style="width: 32px; height: 18px; border-radius: 9px; background: var(--accent-red); position: relative; cursor: pointer;">
+            <div style="width: 14px; height: 14px; border-radius: 50%; background: #FFF; position: absolute; right: 2px; top: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
           </div>
         </div>
       </div>
