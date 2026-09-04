@@ -1970,7 +1970,7 @@
 
           <div class="action-bar">
             <button class="btn btn-primary" onclick="startTranslation()" ${state.isTranslating || state.selection.textNodeCount === 0 ? 'disabled' : ''}>
-              ${state.isTranslating ? '<span class="spinner"></span> 翻译中...' : '开始文本翻译'}
+              ${state.isTranslating ? `<span class="spinner"></span> 正在翻译${state.translationProgress ? ` (${state.translationProgress.current}/${state.translationProgress.total})` : '...'}` : '开始文本翻译'}
             </button>
             <button class="btn btn-secondary" onclick="undoTranslation()" style="width: auto;" title="撤回上一次翻译">
               撤回
@@ -3082,6 +3082,7 @@ echo "=========================================="
     };
     window.startTranslation = function() {
       state.isTranslating = true;
+      state.translationProgress = null;
       render();
       if (state.translateMode === 'text') {
         parent.postMessage({
@@ -4285,23 +4286,87 @@ echo "=========================================="
     };
 
     // =====================================================================
-    // UI-SIDE TRANSLATION ENGINE (Has Network Access)
+    // 2. MODERN TRANSLATION PIPELINE ARCHITECTURE (Providers & Orchestrator)
     // =====================================================================
-    const UITranslationEngine = {
-      cache: new Map(),
 
-      guessSourceLang(text) {
-        if (/[\u4e00-\u9fff]/.test(text)) return 'zh-CN';
-        if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja';
-        if (/[\uac00-\ud7af]/.test(text)) return 'ko';
-        if (/[\u0400-\u04ff]/.test(text)) return 'ru';
-        if (/[\u0600-\u06ff]/.test(text)) return 'ar';
-        if (/[\u0e00-\u0e7f]/.test(text)) return 'th';
-        if (/[a-zA-Z]/.test(text)) return 'en';
-        return 'auto';
+    // LRU In-Memory Cache (2000 entries for 0ms repeated word hits)
+    class TranslationLRUCache {
+      constructor(limit = 2000) {
+        this.limit = limit;
+        this.cache = new Map();
+      }
+      get(key) {
+        if (!this.cache.has(key)) return undefined;
+        const val = this.cache.get(key);
+        this.cache.delete(key);
+        this.cache.set(key, val);
+        return val;
+      }
+      set(key, val) {
+        if (this.cache.has(key)) {
+          this.cache.delete(key);
+        } else if (this.cache.size >= this.limit) {
+          const oldestKey = this.cache.keys().next().value;
+          this.cache.delete(oldestKey);
+        }
+        this.cache.set(key, val);
+      }
+      has(key) {
+        return this.cache.has(key);
+      }
+    }
+
+    // Tag Shielding & Normalization Engine (Preserves <s id="X"> and <span id="X"> across MT)
+    const TagShieldingEngine = {
+      unescapeHtml(str) {
+        if (!str || typeof str !== 'string') return '';
+        return str
+          .replace(/&lt;/gi, '<')
+          .replace(/&gt;/gi, '>')
+          .replace(/&quot;/gi, '"')
+          .replace(/&#39;/gi, "'")
+          .replace(/&amp;/gi, '&');
       },
 
-      async fetchWithTimeout(url, options, timeoutMs) {
+      normalizeTags(str) {
+        if (!str || typeof str !== 'string') return str;
+        let s = this.unescapeHtml(str);
+        // Normalize < s id = "0" > or < span id = '0' > to <s id="0">
+        s = s.replace(/<\s*(?:s|span)\s+id\s*=\s*["']?(\d+)["']?\s*>/gi, '<s id="$1">');
+        // Normalize </ s > or </ span > or < / s > to </s>
+        s = s.replace(/<\s*\/\s*(?:s|span)\s*>/gi, '</s>');
+        return s;
+      },
+
+      repairTags(str) {
+        if (!str || typeof str !== 'string') return str;
+        let normalized = this.normalizeTags(str);
+
+        // Check if there are unbalanced or unclosed tags
+        const openTags = [];
+        const tagRegex = /<s id="(\d+)">|<\/s>/g;
+        let match;
+        while ((match = tagRegex.exec(normalized)) !== null) {
+          if (match[0].startsWith('</')) {
+            if (openTags.length > 0) openTags.pop();
+          } else {
+            openTags.push(match[1]);
+          }
+        }
+
+        // Close any remaining unclosed tags at the end
+        while (openTags.length > 0) {
+          openTags.pop();
+          normalized += '</s>';
+        }
+
+        return normalized;
+      }
+    };
+
+    // Concrete Translation Providers with Failover & Backoff
+    const TranslationProviders = {
+      async fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
@@ -4314,173 +4379,247 @@ echo "=========================================="
         }
       },
 
-      async translateSingle(text, targetLang) {
-        const trimmed = (text || '').trim();
-        if (!trimmed) return text;
+      async sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+      },
+
+      // Google Resilient Provider: GTX + Dict + Exponential Backoff with Jitter
+      async googleTranslate(text, targetLang, attempt = 0) {
+        const encoded = encodeURIComponent(text);
         
-        // Data Protection: protect pure numbers, tickers, percentages, etc.
-        if (state.protectText !== false && DataProtectionEngine.isProtected(trimmed)) {
-          return text;
-        }
-
-        // If the string does not contain any letters (Latin, CJK, Cyrillic, Arabic, Thai, etc.), it's likely just numbers/symbols
-        if (!/[a-zA-Z\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f]/.test(trimmed)) {
-          return text;
-        }
-
-        const cacheKey = `${targetLang}:${trimmed}`;
-        if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
-
-        const srcLang = this.guessSourceLang(trimmed);
-        if (srcLang === targetLang && !srcLang.startsWith('zh')) return trimmed;
-
-        let resText = null;
-
-        // Channel 1: Google GTX Direct
+        // Channel 1: Google GTX Single Endpoint
         try {
-          const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(trimmed)}`;
+          const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encoded}`;
           const res = await this.fetchWithTimeout(gtxUrl, {}, 8000);
           if (res.ok) {
             const data = await res.json();
             if (data && data[0]) {
-              resText = data[0].map(item => item[0]).join('');
+              const resText = data[0].map(item => item[0]).join('');
+              if (resText) return TagShieldingEngine.repairTags(resText);
+            }
+          }
+          if (res.status === 429 && attempt < 2) {
+            const jitter = Math.floor(Math.random() * 300);
+            await this.sleep(500 * (attempt + 1) + jitter);
+            return this.googleTranslate(text, targetLang, attempt + 1);
+          }
+        } catch (e) {}
+
+        // Channel 2: Google Chrome Dict Endpoint Failover
+        try {
+          const dictUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=${encodeURIComponent(targetLang)}&q=${encoded}`;
+          const res = await this.fetchWithTimeout(dictUrl, {}, 8000);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && Array.isArray(data) && data[0]) {
+              const resText = Array.isArray(data[0]) ? data[0][0] : (typeof data[0] === 'string' ? data[0] : null);
+              if (resText) return TagShieldingEngine.repairTags(resText);
             }
           }
         } catch (e) {}
 
-        // Channel 2: Google Dict
-        if (!resText) {
-          try {
-            const dictUrl = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=${encodeURIComponent(targetLang)}&q=${encodeURIComponent(trimmed)}`;
-            const res = await this.fetchWithTimeout(dictUrl, {}, 8000);
-            if (res.ok) {
-              const data = await res.json();
-              if (data && Array.isArray(data) && data[0]) {
-                resText = Array.isArray(data[0]) ? data[0][0] : (typeof data[0] === 'string' ? data[0] : null);
-              }
+        // Channel 3: MyMemory Public Backup
+        try {
+          const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encoded}&langpair=auto|${encodeURIComponent(targetLang)}`;
+          const res = await this.fetchWithTimeout(myMemoryUrl, {}, 8000);
+          if (res.ok) {
+            const data = await res.json();
+            const memText = data?.responseData?.translatedText;
+            if (memText && 
+                !memText.includes('MYMEMORY WARNING') && 
+                !memText.includes('INVALID SOURCE LANGUAGE') && 
+                memText.toUpperCase() !== text.toUpperCase()) {
+              return TagShieldingEngine.repairTags(memText);
             }
-          } catch (e) {}
-        }
-
-        // Channel 3: MyMemory API
-        if (!resText) {
-          try {
-            const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=${encodeURIComponent(srcLang)}|${encodeURIComponent(targetLang)}`;
-            const res = await this.fetchWithTimeout(myMemoryUrl, {}, 8000);
-            if (res.ok) {
-              const data = await res.json();
-              const memText = data?.responseData?.translatedText;
-              if (memText && 
-                  !memText.includes('MYMEMORY WARNING') && 
-                  !memText.includes('INVALID SOURCE LANGUAGE') && 
-                  memText.toUpperCase() !== trimmed.toUpperCase()) {
-                resText = memText;
-              }
-            }
-          } catch (e) {}
-        }
-
-        if (resText && resText !== trimmed) {
-          if (state.smartCasing !== false) {
-            resText = SmartCasingEngine.format(resText, targetLang);
           }
-          this.cache.set(cacheKey, resText);
-          return resText;
-        }
+        } catch (e) {}
 
-        return trimmed;
+        return text;
       },
 
-      async translateBatch(texts, targetLang, customConfig) {
-        const uniqueTexts = Array.from(new Set(texts.map(t => (t || '').trim()).filter(Boolean)));
+      // LLM Provider: DeepSeek, OpenAI, Kimi, SiliconFlow, Zhipu, etc.
+      async llmTranslateBatch(texts, targetLang, customConfig) {
+        if (!customConfig?.apiKey || texts.length === 0) return new Map();
+        const cleanBase = (customConfig.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
+        const url = cleanBase.endsWith('/chat/completions') ? cleanBase : `${cleanBase}/chat/completions`;
+
+        const prompt = texts.map((t, idx) => `[${idx}] ${t}`).join('\n');
         const resultMap = new Map();
 
-        const toTranslate = uniqueTexts.filter(t => {
-          // Data Protection: keep numbers, tickers, currencies, percentages untouched
-          if (state.protectText !== false && DataProtectionEngine.isProtected(t)) {
-            resultMap.set(t, t);
-            return false;
-          }
-          const src = this.guessSourceLang(t);
-          if (src === targetLang && !src.startsWith('zh')) { resultMap.set(t, t); return false; }
-          return true;
-        });
+        try {
+          const res = await this.fetchWithTimeout(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${customConfig.apiKey.trim()}`
+            },
+            body: JSON.stringify({
+              model: customConfig.model || 'deepseek-chat',
+              messages: [
+                {
+                  role: 'system',
+                  content: `You are an expert UI/UX localization translator. Translate each numbered item to "${targetLang}".
+Strict formatting and tag integrity rules:
+1. Preserve all markup tags like <s id="0">...</s> or <span id="0">...</span> around their corresponding translated words without modifying id values or tag structure.
+2. Preserve placeholders like {0}, {name}, %s, $1, #hashtag intact.
+3. Capitalization rules:
+   - Buttons, navigation items, page titles, table headers: Title Case (e.g. "Submit Form", "Settings", "Account Details").
+   - Descriptions, alerts, helper notes: Sentence case (capitalize first letter only, preserve acronyms).
+   - Acronyms (ID, API, URL, AI, VIP, FAQ, BTC): Always standard UPPERCASE.
+4. Output format: Exactly one translated line per item with its number prefix "[0] ...", "[1] ...". Do not output markdown codeblocks, explanations, or notes.`
+                },
+                { role: 'user', content: prompt }
+              ],
+              temperature: 0.1
+            })
+          }, 18000);
 
-        // 1. Custom LLM (DeepSeek / OpenAI / Kimi / Custom)
-        if (customConfig?.apiKey && toTranslate.length > 0) {
-          try {
-            const prompt = toTranslate.map((t, idx) => `[${idx}] ${t}`).join('\n');
-            const cleanBase = (customConfig.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
-            const url = cleanBase.endsWith('/chat/completions') ? cleanBase : `${cleanBase}/chat/completions`;
-
-            const res = await this.fetchWithTimeout(url, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': `Bearer ${customConfig.apiKey.trim()}` 
-              },
-              body: JSON.stringify({
-                model: customConfig.model || 'deepseek-chat',
-                messages: [
-                  { 
-                    role: 'system', 
-                    content: `You are a professional UI/UX localization translator. Translate each numbered item to "${targetLang}".
-Capitalization rules:
-- Single words, buttons, tabs, menu items, and titles: use Title Case or Capitalize the first letter (e.g. "Confirm", "Settings", "Add to Cart", "Sign In").
-- Sentences, descriptions, hints, and error messages: use Sentence case (capitalize only the first word and proper nouns/acronyms; do not capitalize common words inside sentences).
-- Acronyms (e.g. ID, API, UI, URL, VIP, FAQ, OK, AI): preserve or format in standard uppercase.
-Output format: exactly one translated line per item with its number prefix "[0] ...", "[1] ...". Do not add comments or explanations. Keep placeholders like {name}, %s, $1 intact.` 
-                  },
-                  { role: 'user', content: prompt },
-                ],
-                temperature: 0.1,
-              }),
-            }, 15000);
-
-            if (res.ok) {
-              const data = await res.json();
-              const content = data.choices?.[0]?.message?.content || '';
-              const lines = content.split('\n');
-              for (const line of lines) {
-                const match = line.match(/^\[(\d+)\]\s*(.*)$/);
-                if (match) {
-                  const idx = parseInt(match[1], 10);
-                  if (toTranslate[idx]) resultMap.set(toTranslate[idx], match[2].trim());
+          if (res.ok) {
+            const data = await res.json();
+            const content = data.choices?.[0]?.message?.content || '';
+            const lines = content.split('\n');
+            for (const line of lines) {
+              const match = line.match(/^\[(\d+)\]\s*(.*)$/);
+              if (match) {
+                const idx = parseInt(match[1], 10);
+                if (texts[idx]) {
+                  const cleaned = TagShieldingEngine.repairTags(match[2].trim());
+                  resultMap.set(texts[idx], cleaned);
                 }
               }
             }
-          } catch (e) {
-            console.warn('[Custom LLM Batch Error]', e);
           }
-        }
-
-        // 2. Translate untranslated items individually via concurrent 1-to-1 requests (eliminates delimiter shift/mixing bugs)
-        const pending = toTranslate.filter(t => !resultMap.has(t));
-        if (pending.length > 0) {
-          const concurrency = 8;
-          for (let i = 0; i < pending.length; i += concurrency) {
-            const chunk = pending.slice(i, i + concurrency);
-            await Promise.all(
-              chunk.map(async (text) => {
-                const trans = await this.translateSingle(text, targetLang);
-                resultMap.set(text, trans);
-              })
-            );
-          }
-        }
-
-        // 3. Post-processing: Apply Smart Casing to all results
-        if (state.smartCasing !== false) {
-          for (const [key, val] of resultMap.entries()) {
-            if (val) {
-              resultMap.set(key, SmartCasingEngine.format(val, targetLang));
-            }
-          }
+        } catch (e) {
+          console.warn('[LLM Batch Error]', e);
         }
 
         return resultMap;
       }
     };
+
+    // Translation Pipeline Orchestrator
+    const TranslationPipeline = {
+      cache: new TranslationLRUCache(2000),
+
+      guessSourceLang(text) {
+        if (/[\u4e00-\u9fff]/.test(text)) return 'zh-CN';
+        if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja';
+        if (/[\uac00-\ud7af]/.test(text)) return 'ko';
+        if (/[\u0400-\u04ff]/.test(text)) return 'ru';
+        if (/[\u0600-\u06ff]/.test(text)) return 'ar';
+        if (/[\u0e00-\u0e7f]/.test(text)) return 'th';
+        if (/[a-zA-Z]/.test(text)) return 'en';
+        return 'auto';
+      },
+
+      async translateSingle(text, targetLang) {
+        const trimmed = (text || '').trim();
+        if (!trimmed) return text;
+
+        if (state.protectText !== false && DataProtectionEngine.isProtected(trimmed)) {
+          return text;
+        }
+
+        // Check LRU cache
+        const cacheKey = `${targetLang}:${trimmed}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached) return cached;
+
+        // Skip if pure numbers or punctuation
+        if (!/[a-zA-Z\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f]/.test(trimmed)) {
+          return text;
+        }
+
+        const srcLang = this.guessSourceLang(trimmed);
+        if (srcLang === targetLang && !srcLang.startsWith('zh')) return trimmed;
+
+        let result = await TranslationProviders.googleTranslate(trimmed, targetLang);
+        if (result && result !== trimmed) {
+          if (state.smartCasing !== false) {
+            result = SmartCasingEngine.format(result, targetLang);
+          }
+          this.cache.set(cacheKey, result);
+          return result;
+        }
+
+        return trimmed;
+      },
+
+      async translateBatch(texts, targetLang, customConfig, onProgress = null) {
+        const uniqueTexts = Array.from(new Set(texts.map(t => (t || '').trim()).filter(Boolean)));
+        const resultMap = new Map();
+
+        // 1. Filter out protected texts, same-language texts, and cached hits
+        const toTranslate = [];
+        for (const t of uniqueTexts) {
+          if (state.protectText !== false && DataProtectionEngine.isProtected(t)) {
+            resultMap.set(t, t);
+            continue;
+          }
+          const cacheKey = `${targetLang}:${t}`;
+          const cached = this.cache.get(cacheKey);
+          if (cached) {
+            resultMap.set(t, cached);
+            continue;
+          }
+          const src = this.guessSourceLang(t);
+          if (src === targetLang && !src.startsWith('zh')) {
+            resultMap.set(t, t);
+            continue;
+          }
+          toTranslate.push(t);
+        }
+
+        let completedCount = resultMap.size;
+        const totalCount = uniqueTexts.length;
+        if (onProgress) onProgress(completedCount, totalCount);
+
+        // 2. Custom LLM path (if configured)
+        if (customConfig?.apiKey && toTranslate.length > 0) {
+          const llmResults = await TranslationProviders.llmTranslateBatch(toTranslate, targetLang, customConfig);
+          for (const [orig, trans] of llmResults.entries()) {
+            if (trans && trans !== orig) {
+              resultMap.set(orig, trans);
+              this.cache.set(`${targetLang}:${orig}`, trans);
+            }
+          }
+        }
+
+        // 3. Fallback to resilient concurrent 1-to-1 requests for any remaining items
+        const pending = toTranslate.filter(t => !resultMap.has(t));
+        if (pending.length > 0) {
+          const CONCURRENCY = 8;
+          for (let i = 0; i < pending.length; i += CONCURRENCY) {
+            const chunk = pending.slice(i, i + CONCURRENCY);
+            await Promise.all(
+              chunk.map(async (text) => {
+                const trans = await this.translateSingle(text, targetLang);
+                resultMap.set(text, trans);
+                completedCount++;
+                if (onProgress) onProgress(completedCount, totalCount);
+              })
+            );
+          }
+        }
+
+        // 4. Post-processing: Normalize tags & Apply Smart Casing to all results
+        for (const [key, val] of resultMap.entries()) {
+          if (val) {
+            let processed = TagShieldingEngine.repairTags(val);
+            if (state.smartCasing !== false) {
+              processed = SmartCasingEngine.format(processed, targetLang);
+            }
+            resultMap.set(key, processed);
+          }
+        }
+
+        if (onProgress) onProgress(totalCount, totalCount);
+        return resultMap;
+      }
+    };
+
+    // Backward-compatible alias for existing callers
+    const UITranslationEngine = TranslationPipeline;
 
     // =====================================================================
     // =====================================================================
@@ -4525,7 +4664,15 @@ Output format: exactly one translated line per item with its number prefix "[0] 
         
         try {
           const rawTexts = nodeTexts.map(n => n.text);
-          const resultMap = await UITranslationEngine.translateBatch(rawTexts, targetLanguage, customConfig);
+          const onProgress = (current, total) => {
+            state.translationProgress = { current, total };
+            const btn = document.querySelector('.action-bar .btn-primary');
+            if (btn && state.isTranslating) {
+              btn.innerHTML = `<span class="spinner"></span> 正在翻译 (${current}/${total})...`;
+            }
+          };
+
+          const resultMap = await TranslationPipeline.translateBatch(rawTexts, targetLanguage, customConfig, onProgress);
           const results = nodeTexts.map(n => {
             const origTrimmed = (n.text || '').trim();
             if (state.protectText !== false && DataProtectionEngine.isProtected(origTrimmed)) {
@@ -4567,9 +4714,21 @@ Output format: exactly one translated line per item with its number prefix "[0] 
         
         try {
           const allResults = [];
+          const totalBatches = batches.length;
+          let batchIdx = 0;
+
           for (const batch of batches) {
+            batchIdx++;
             const rawTexts = batch.nodeTexts.map(n => n.text);
-            const resultMap = await UITranslationEngine.translateBatch(rawTexts, batch.targetLanguage, customConfig);
+            const onProgress = (current, total) => {
+              state.translationProgress = { current, total };
+              const btn = document.querySelector('.action-bar .btn-primary');
+              if (btn && state.isTranslating) {
+                btn.innerHTML = `<span class="spinner"></span> 生成画板 [${batchIdx}/${totalBatches}] (${current}/${total})...`;
+              }
+            };
+
+            const resultMap = await TranslationPipeline.translateBatch(rawTexts, batch.targetLanguage, customConfig, onProgress);
             const results = batch.nodeTexts.map(n => {
               const origTrimmed = (n.text || '').trim();
               if (state.protectText !== false && DataProtectionEngine.isProtected(origTrimmed)) {
@@ -5133,11 +5292,13 @@ Output format: exactly one translated line per item with its number prefix "[0] 
 
       'task/completed'() {
         state.isTranslating = false;
+        state.translationProgress = null;
         render();
       },
 
       'task/failed'() {
         state.isTranslating = false;
+        state.translationProgress = null;
         render();
       }
     };

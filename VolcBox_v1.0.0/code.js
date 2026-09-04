@@ -125,25 +125,150 @@ const DEFAULT_STYLE_LIBRARY = {
 };
 
 // =====================================================================
-// 2. RICH TEXT HELPER (For Translation)
+// 2. FONT MANAGER SERVICE (Concurrent Preloader & Graceful Fallback)
 // =====================================================================
-const RichTextHelper = {
+const FontManagerService = {
+  loadedFonts: new Set(),
+
+  fontKey(font) {
+    if (!font || typeof font !== 'object') return '';
+    return `${font.family}:::${font.style}`;
+  },
+
+  async preloadFonts(fonts = []) {
+    const toLoad = [];
+    for (const f of fonts) {
+      if (!f || f === figma.mixed || typeof f !== 'object') continue;
+      const key = this.fontKey(f);
+      if (!this.loadedFonts.has(key)) {
+        toLoad.push(f);
+      }
+    }
+    if (toLoad.length === 0) return;
+
+    await Promise.allSettled(
+      toLoad.map(async (font) => {
+        try {
+          await figma.loadFontAsync(font);
+          this.loadedFonts.add(this.fontKey(font));
+        } catch (err) {
+          console.warn(`[FontManager] Warning: could not preload font ${font.family} ${font.style}:`, err);
+        }
+      })
+    );
+  },
+
+  async safeLoadFont(font, fallback = null) {
+    if (!font || font === figma.mixed || typeof font !== 'object') return false;
+    const key = this.fontKey(font);
+    if (this.loadedFonts.has(key)) return true;
+
+    try {
+      await figma.loadFontAsync(font);
+      this.loadedFonts.add(key);
+      return true;
+    } catch (e) {
+      console.warn(`[FontManager] Load font failed for ${font.family} ${font.style}, trying fallback...`);
+      if (fallback && fallback !== figma.mixed && typeof fallback === 'object') {
+        try {
+          await figma.loadFontAsync(fallback);
+          this.loadedFonts.add(this.fontKey(fallback));
+          return true;
+        } catch (e2) {}
+      }
+      try {
+        const standardFont = { family: 'Inter', style: 'Regular' };
+        await figma.loadFontAsync(standardFont);
+        this.loadedFonts.add(this.fontKey(standardFont));
+        return true;
+      } catch (e3) {}
+      return false;
+    }
+  }
+};
+
+// =====================================================================
+// 2.1 NATIVE RICH TEXT ENGINE (High Performance Segmented Styling)
+// =====================================================================
+const NativeRichTextEngine = {
   isRich(node) {
-    return node.fontName === figma.mixed || 
-           node.fills === figma.mixed || 
-           node.fontSize === figma.mixed || 
-           node.textDecoration === figma.mixed ||
-           node.letterSpacing === figma.mixed ||
-           node.lineHeight === figma.mixed;
+    if (!node || node.type !== 'TEXT') return false;
+    if (node.characters.length === 0) return false;
+    if (node.fontName === figma.mixed || 
+        node.fills === figma.mixed || 
+        node.fontSize === figma.mixed || 
+        node.textDecoration === figma.mixed ||
+        node.letterSpacing === figma.mixed ||
+        node.lineHeight === figma.mixed ||
+        node.textCase === figma.mixed ||
+        node.textStyleId === figma.mixed ||
+        node.fillStyleId === figma.mixed) {
+      return true;
+    }
+    if (typeof node.getStyledTextSegments === 'function') {
+      try {
+        const segs = node.getStyledTextSegments(['fontSize', 'fontName']);
+        return segs && segs.length > 1;
+      } catch (e) {}
+    }
+    return false;
   },
 
   extract(node) {
+    if (!node || node.type !== 'TEXT' || node.characters.length === 0) {
+      return { taggedText: "", styles: [] };
+    }
+
+    const styles = [];
+    const styleMap = new Map();
+
+    // 1. Preferred: Native C++ getStyledTextSegments (O(1) IPC bridge call)
+    if (typeof node.getStyledTextSegments === 'function') {
+      try {
+        const rawSegments = node.getStyledTextSegments([
+          'fontSize',
+          'fontName',
+          'textDecoration',
+          'letterSpacing',
+          'lineHeight',
+          'fills',
+          'textStyleId',
+          'fillStyleId',
+          'textCase'
+        ]);
+
+        if (rawSegments && rawSegments.length > 0) {
+          let taggedText = "";
+          for (const seg of rawSegments) {
+            const styleObj = {
+              fontName: seg.fontName,
+              fontSize: seg.fontSize,
+              fills: seg.fills,
+              textDecoration: seg.textDecoration,
+              letterSpacing: seg.letterSpacing,
+              lineHeight: seg.lineHeight,
+              textStyleId: seg.textStyleId || '',
+              fillStyleId: seg.fillStyleId || '',
+              textCase: seg.textCase || 'ORIGINAL'
+            };
+            const fingerprint = JSON.stringify(styleObj);
+            let sIdx = styleMap.get(fingerprint);
+            if (sIdx === undefined) {
+              sIdx = styles.length;
+              styles.push(styleObj);
+              styleMap.set(fingerprint, sIdx);
+            }
+            taggedText += `<s id="${sIdx}">${seg.characters}</s>`;
+          }
+          return { taggedText, styles };
+        }
+      } catch (err) {
+        console.warn('[NativeRichTextEngine] getStyledTextSegments fallback to range loop:', err);
+      }
+    }
+
+    // 2. Fallback: Range-based inspection
     const len = node.characters.length;
-    if (len === 0) return { taggedText: "", styles: [] };
-
-    const styles = []; 
-    const styleMap = new Map(); 
-
     let taggedText = "";
     let currentStyleIdx = -1;
     let currentSegmentText = "";
@@ -157,11 +282,12 @@ const RichTextHelper = {
       const ls = node.getRangeLetterSpacing(i, i + 1);
       const lh = node.getRangeLineHeight(i, i + 1);
       
-      const styleStr = JSON.stringify({ font, fill, size, dec, ls, lh });
+      const styleObj = { fontName: font, fills: fill, fontSize: size, textDecoration: dec, letterSpacing: ls, lineHeight: lh };
+      const styleStr = JSON.stringify(styleObj);
       let sIdx = styleMap.get(styleStr);
       if (sIdx === undefined) {
         sIdx = styles.length;
-        styles.push({ font, fill, size, dec, ls, lh });
+        styles.push(styleObj);
         styleMap.set(styleStr, sIdx);
       }
 
@@ -171,44 +297,53 @@ const RichTextHelper = {
       } else if (currentStyleIdx === sIdx) {
         currentSegmentText += char;
       } else {
-        taggedText += `<span id="${currentStyleIdx}">${currentSegmentText}</span>`;
+        taggedText += `<s id="${currentStyleIdx}">${currentSegmentText}</s>`;
         currentStyleIdx = sIdx;
         currentSegmentText = char;
       }
     }
     if (currentStyleIdx !== -1) {
-      taggedText += `<span id="${currentStyleIdx}">${currentSegmentText}</span>`;
+      taggedText += `<s id="${currentStyleIdx}">${currentSegmentText}</s>`;
     }
 
     return { taggedText, styles };
   },
 
   async apply(node, translatedTaggedText, styles) {
+    if (!node || node.type !== 'TEXT') return;
+    if (!translatedTaggedText && translatedTaggedText !== '') return;
+    if (!styles || styles.length === 0) {
+      const clean = (translatedTaggedText || '').replace(/<[^>]+>/g, '');
+      await FontManagerService.safeLoadFont(node.fontName === figma.mixed ? node.getRangeFontName(0, 1) : node.fontName);
+      node.characters = clean;
+      return;
+    }
+
+    // 1. Unescape HTML entities from translation models
     let unescaped = translatedTaggedText
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .replace(/&amp;/g, '&');
-        
-    const tagRegex = /<span\s+id\s*=\s*["']?(\d+)["']?\s*>([\s\S]*?)<\/\s*span\s*>/gi;
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'")
+        .replace(/&amp;/gi, '&');
+
+    // 2. Tolerant tag regex matching both <s id="0">...</s> and <span id="0">...</span> with flexible spacing
+    const tagRegex = /<\s*(?:s|span)\s+id\s*=\s*["']?(\d+)["']?\s*>([\s\S]*?)<\s*\/\s*(?:s|span)\s*>/gi;
     
     let finalString = "";
-    const segmentsToApply = []; 
-
+    const segmentsToApply = [];
     let match;
     let lastIndex = 0;
 
     while ((match = tagRegex.exec(unescaped)) !== null) {
       const before = unescaped.substring(lastIndex, match.index);
       if (before) {
-        segmentsToApply.push({ start: finalString.length, end: finalString.length + before.length, styleIdx: 0 }); 
+        segmentsToApply.push({ start: finalString.length, end: finalString.length + before.length, styleIdx: 0 });
         finalString += before;
       }
 
       const styleIdx = parseInt(match[1], 10);
       const innerText = match[2];
-      
       if (innerText) {
         const start = finalString.length;
         finalString += innerText;
@@ -225,39 +360,78 @@ const RichTextHelper = {
       finalString += after;
     }
 
+    // Fallback if no tags detected
     if (segmentsToApply.length === 0) {
-        finalString = unescaped.replace(/<[^>]+>/g, ''); 
-        segmentsToApply.push({ start: 0, end: finalString.length, styleIdx: 0 });
+      finalString = unescaped.replace(/<[^>]+>/g, '');
+      segmentsToApply.push({ start: 0, end: finalString.length, styleIdx: 0 });
     }
 
+    // 3. Preload all unique fonts required
+    const fontsToLoad = [];
     for (const s of styles) {
-      if (s.font && s.font !== figma.mixed) {
-        try {
-          await figma.loadFontAsync(s.font);
-        } catch (e) {}
-      }
+      const fn = s.fontName || s.font;
+      if (fn && fn !== figma.mixed) fontsToLoad.push(fn);
     }
-    try {
-      await figma.loadFontAsync(node.fontName === figma.mixed ? node.getRangeFontName(0, 1) : node.fontName);
-    } catch(e){}
+    const currentBaseFont = node.fontName === figma.mixed ? node.getRangeFontName(0, 1) : node.fontName;
+    if (currentBaseFont && currentBaseFont !== figma.mixed) fontsToLoad.push(currentBaseFont);
 
+    await FontManagerService.preloadFonts(fontsToLoad);
+
+    const fallbackFont = (styles[0] && (styles[0].fontName || styles[0].font)) || currentBaseFont;
+    await FontManagerService.safeLoadFont(fallbackFont);
+
+    // 4. Assign characters
     node.characters = finalString;
 
+    // 5. Apply segmented styling with boundary clamping
+    const totalLen = finalString.length;
     for (const seg of segmentsToApply) {
-      const s = styles[seg.styleIdx];
+      const s = styles[seg.styleIdx] || styles[0];
       if (!s) continue;
-      
-      try {
-        if (s.font && s.font !== figma.mixed) node.setRangeFontName(seg.start, seg.end, s.font);
-        if (s.fill && s.fill !== figma.mixed) node.setRangeFills(seg.start, seg.end, s.fill);
-        if (s.size !== figma.mixed) node.setRangeFontSize(seg.start, seg.end, s.size);
-        if (s.dec !== figma.mixed) node.setRangeTextDecoration(seg.start, seg.end, s.dec);
-        if (s.ls !== figma.mixed) node.setRangeLetterSpacing(seg.start, seg.end, s.ls);
-        if (s.lh !== figma.mixed) node.setRangeLineHeight(seg.start, seg.end, s.lh);
-      } catch (err) {}
+
+      const start = Math.max(0, Math.min(seg.start, totalLen));
+      const end = Math.max(start, Math.min(seg.end, totalLen));
+      if (start >= end) continue;
+
+      const fn = s.fontName || s.font;
+      if (fn && fn !== figma.mixed) {
+        try { node.setRangeFontName(start, end, fn); } catch (e) {}
+      }
+      const fills = s.fills !== undefined ? s.fills : s.fill;
+      if (fills && fills !== figma.mixed) {
+        try { node.setRangeFills(start, end, fills); } catch (e) {}
+      }
+      const size = s.fontSize !== undefined ? s.fontSize : s.size;
+      if (size && size !== figma.mixed) {
+        try { node.setRangeFontSize(start, end, size); } catch (e) {}
+      }
+      const dec = s.textDecoration !== undefined ? s.textDecoration : s.dec;
+      if (dec && dec !== figma.mixed) {
+        try { node.setRangeTextDecoration(start, end, dec); } catch (e) {}
+      }
+      const ls = s.letterSpacing !== undefined ? s.letterSpacing : s.ls;
+      if (ls && ls !== figma.mixed) {
+        try { node.setRangeLetterSpacing(start, end, ls); } catch (e) {}
+      }
+      const lh = s.lineHeight !== undefined ? s.lineHeight : s.lh;
+      if (lh && lh !== figma.mixed) {
+        try { node.setRangeLineHeight(start, end, lh); } catch (e) {}
+      }
+      if (s.textCase && s.textCase !== figma.mixed) {
+        try { node.setRangeTextCase(start, end, s.textCase); } catch (e) {}
+      }
+      if (s.textStyleId && typeof node.setRangeTextStyleId === 'function') {
+        try { node.setRangeTextStyleId(start, end, s.textStyleId); } catch (e) {}
+      }
+      if (s.fillStyleId && typeof node.setRangeFillStyleId === 'function') {
+        try { node.setRangeFillStyleId(start, end, s.fillStyleId); } catch (e) {}
+      }
     }
   }
 };
+
+// Backward-compatible alias for existing modules
+const RichTextHelper = NativeRichTextEngine;
 
 // =====================================================================
 // 3. SELECTION SCANNER & UTILS
@@ -1836,25 +2010,49 @@ const Handlers = {
       NodeHistoryManager.recordBeforeChange(nodesToModify, 'translate');
     }
 
-    // 3. Apply translated characters & rich styles
-    let completed = 0;
+    // 3. Batch preload all needed fonts concurrently
+    const fontsToPreload = [];
     for (let i = 0; i < nodesToModify.length; i++) {
       const node = nodesToModify[i];
       const item = targetItems[i];
-      try {
-        if (preserveRichText && item.richStyles) {
-          await RichTextHelper.apply(node, item.translated, item.richStyles);
-        } else {
-          if (node.fontName === figma.mixed) {
-            await figma.loadFontAsync(node.getRangeFontName(0, 1));
-          } else {
-            await figma.loadFontAsync(node.fontName);
-          }
-          node.characters = item.translated;
+      if (preserveRichText && item.richStyles && Array.isArray(item.richStyles)) {
+        for (const s of item.richStyles) {
+          const fn = s.fontName || s.font;
+          if (fn && fn !== figma.mixed) fontsToPreload.push(fn);
         }
-        completed++;
-      } catch (e) {
-        console.error('[Write Node Error]', e);
+      }
+      if (node.fontName && node.fontName !== figma.mixed) {
+        fontsToPreload.push(node.fontName);
+      }
+    }
+    await FontManagerService.preloadFonts(fontsToPreload);
+
+    // 4. Smooth slice write-back with microtask yielding
+    let completed = 0;
+    const SLICE_SIZE = 15;
+    for (let i = 0; i < nodesToModify.length; i += SLICE_SIZE) {
+      const sliceNodes = nodesToModify.slice(i, i + SLICE_SIZE);
+      const sliceItems = targetItems.slice(i, i + SLICE_SIZE);
+
+      for (let j = 0; j < sliceNodes.length; j++) {
+        const node = sliceNodes[j];
+        const item = sliceItems[j];
+        try {
+          if (preserveRichText && item.richStyles) {
+            await NativeRichTextEngine.apply(node, item.translated, item.richStyles);
+          } else {
+            const baseFont = node.fontName === figma.mixed ? node.getRangeFontName(0, 1) : node.fontName;
+            await FontManagerService.safeLoadFont(baseFont);
+            node.characters = item.translated;
+          }
+          completed++;
+        } catch (e) {
+          console.error('[Write Node Error]', e);
+        }
+      }
+
+      if (i + SLICE_SIZE < nodesToModify.length) {
+        await new Promise(r => setTimeout(r, 0));
       }
     }
 
