@@ -276,6 +276,27 @@ const SelectionEngine = {
     function walk(node) {
       if (node.type === 'TEXT') {
         textNodeCount++;
+        // Self-healing: Purge any contaminated / cloned pluginData
+        try {
+          const tMem = node.getPluginData('volc_translate_original_mem');
+          if (tMem) {
+            const parsed = JSON.parse(tMem);
+            if ((parsed.nodeId && parsed.nodeId !== node.id) ||
+                (parsed.appliedText && node.characters !== parsed.appliedText && node.characters === parsed.beforeText) ||
+                (DataProtectionEngine.isProtected(node.characters) && parsed.text && !DataProtectionEngine.isProtected(parsed.text))) {
+              node.setPluginData('volc_translate_original_mem', '');
+            }
+          }
+          const fMem = node.getPluginData('volc_fill_original_mem');
+          if (fMem) {
+            const parsed = JSON.parse(fMem);
+            if ((parsed.nodeId && parsed.nodeId !== node.id) ||
+                (parsed.appliedText && node.characters !== parsed.appliedText && node.characters === parsed.beforeText) ||
+                (DataProtectionEngine.isProtected(node.characters) && parsed.text && !DataProtectionEngine.isProtected(parsed.text))) {
+              node.setPluginData('volc_fill_original_mem', '');
+            }
+          }
+        } catch (e) {}
       }
       if (node.type === 'FRAME' || node.type === 'SECTION' || node.type === 'COMPONENT') {
         artboardCount++;
@@ -381,10 +402,68 @@ const SelectionEngine = {
 };
 
 // =====================================================================
+// 2.8 DATA & SYMBOL PROTECTION ENGINE (Guards numbers, currencies, tickers)
+// =====================================================================
+const DataProtectionEngine = {
+  COMMON_TICKERS: new Set([
+    'NVDA', 'TSLA', 'AAPL', 'MSFT', 'GOOG', 'GOOGL', 'AMZN', 'META', 'AMD', 'INTC',
+    'ADM', 'BABA', 'NFLX', 'DIS', 'PYPL', 'UBER', 'COIN', 'NKE', 'SBUX', 'ORCL',
+    'EURUSD', 'GBPUSD', 'USDJPY', 'NZDUSD', 'AUDUSD', 'USDCAD', 'USDCHF', 'EURGBP',
+    'EURJPY', 'GBPJPY', 'XAUUSD', 'XAGUSD', 'BTCUSD', 'ETHUSD', 'USDX', 'USOIL', 'UKOIL',
+    'SPX', 'NDX', 'DJI', 'VIX', 'US30', 'NAS100', 'SP500', 'HK0700', 'HK09988'
+  ]),
+
+  isProtected(rawText) {
+    if (!rawText || typeof rawText !== 'string') return false;
+    const text = rawText.replace(/<[^>]+>/g, '').trim();
+    if (!text) return true;
+
+    // 1. Strings with NO letters at all (pure numbers, signs, currencies, punctuation)
+    if (!/[a-zA-Z\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f]/.test(text)) {
+      return true;
+    }
+
+    // 2. Percentages or signed numbers: e.g. "+0.69%", "-0.20%", "+0.09%", "+0.05%"
+    if (/^[+-]?\s*[\d,.]+\s*[%％]$/.test(text)) {
+      return true;
+    }
+
+    // 3. Currency with number: e.g. "US$ 100", "HK$ 500", "100 USD", "50 EUR", "¥ 199.00", "$99"
+    if (/^(?:US\$|HK\$|AU\$|CA\$|RMB|USD|EUR|GBP|JPY|CNY|KRW)\s*[\d,.]+/i.test(text) ||
+        /^[\d,.]+\s*(?:USD|EUR|GBP|JPY|CNY|KRW|RMB)$/i.test(text)) {
+      return true;
+    }
+
+    // 4. Financial Tickers / Forex pairs / Stock codes:
+    const commonUIWords = new Set(['ALL', 'NEW', 'ADD', 'EDIT', 'HOME', 'VIEW', 'SAVE', 'MORE', 'NEXT', 'BACK', 'DONE', 'USER', 'MENU', 'HELP', 'SEND', 'INFO', 'CART', 'ITEM', 'TAG', 'TAB', 'PAGE', 'TOP', 'LIST', 'CODE', 'DATA', 'FILE', 'TYPE', 'DATE', 'NAME', 'POST', 'TEXT', 'ICON', 'OK']);
+    const upper = text.toUpperCase();
+    if (this.COMMON_TICKERS.has(upper)) {
+      return true;
+    }
+    if (/^[A-Z]{3,7}$/.test(text) && !commonUIWords.has(upper)) {
+      if (text === upper) return true;
+    }
+
+    // 5. Stock codes: e.g. '600519.SH', '00700.HK', 'NASDAQ:NVDA'
+    if (/^(?:[A-Z]{2,6}:[A-Z0-9]+|\d{5,6}\.(?:SH|SZ|HK|BJ))$/i.test(text)) {
+      return true;
+    }
+
+    // 6. Timestamps, durations, metrics:
+    if (/^(?:\d+:\d+(?::\d+)?(?:\s*(?:AM|PM))?|\d+(?:\.\d+)?\s*(?:ms|s|min|h|fps|px|pt|dp|rem|em|vh|vw|kb|mb|gb|tb|k|w|p)\b|v\d+(?:\.\d+)+)$/i.test(text)) {
+      return true;
+    }
+
+    return false;
+  }
+};
+
+// =====================================================================
 // 3. STORAGE & STATE MANAGER
 // =====================================================================
 const StorageEngine = {
-  undoStack: [],
+  translationUndoStack: [],
+  fillUndoStack: [],
 
   deepMerge(target, source) {
     if (!source || typeof source !== 'object') return target;
@@ -444,15 +523,37 @@ const StorageEngine = {
     return DEFAULT_STYLE_LIBRARY;
   },
 
-  pushUndo(snapshot) {
-    this.undoStack.push(snapshot);
-    if (this.undoStack.length > 30) {
-      this.undoStack.shift();
+  pushTranslationUndo(snapshot) {
+    if (!snapshot || !snapshot.records || snapshot.records.length === 0) return;
+    this.translationUndoStack.push(snapshot);
+    if (this.translationUndoStack.length > 30) {
+      this.translationUndoStack.shift();
     }
   },
 
+  popTranslationUndo() {
+    return this.translationUndoStack.pop() || null;
+  },
+
+  pushFillUndo(snapshot) {
+    if (!snapshot || !snapshot.records || snapshot.records.length === 0) return;
+    this.fillUndoStack.push(snapshot);
+    if (this.fillUndoStack.length > 30) {
+      this.fillUndoStack.shift();
+    }
+  },
+
+  popFillUndo() {
+    return this.fillUndoStack.pop() || null;
+  },
+
+  // Compatibility aliases
+  pushUndo(snapshot) {
+    this.pushTranslationUndo(snapshot);
+  },
+
   popUndo() {
-    return this.undoStack.pop() || null;
+    return this.popTranslationUndo();
   },
 };
 
@@ -1605,9 +1706,15 @@ const Handlers = {
     for (const item of results) {
       const node = await figma.getNodeByIdAsync(item.id);
       if (node && node.type === 'TEXT' && item.translated && item.translated !== node.characters) {
+        // Double-check: if current characters is protected pure data, never overwrite
+        if (DataProtectionEngine.isProtected(node.characters)) {
+          continue;
+        }
+
         let memData = {
-          id: node.id,
-          text: node.characters,
+          nodeId: node.id,
+          beforeText: node.characters,
+          appliedText: item.translated,
           isRich: RichTextHelper.isRich(node)
         };
         if (memData.isRich) {
@@ -1621,7 +1728,7 @@ const Handlers = {
     }
 
     if (undoSnapshot.records.length > 0) {
-      StorageEngine.pushUndo(undoSnapshot);
+      StorageEngine.pushTranslationUndo(undoSnapshot);
     }
 
     // 2. Apply translated characters & rich styles
@@ -1629,6 +1736,10 @@ const Handlers = {
     for (const item of results) {
       const node = await figma.getNodeByIdAsync(item.id);
       if (node && node.type === 'TEXT' && item.translated && item.translated !== node.characters) {
+        if (DataProtectionEngine.isProtected(node.characters)) {
+          continue;
+        }
+
         try {
           if (preserveRichText && item.richStyles) {
             await RichTextHelper.apply(node, item.translated, item.richStyles);
@@ -1647,7 +1758,12 @@ const Handlers = {
       }
     }
 
-    figma.notify(`⚡️ 翻译完成，已更新 ${completed} 个文本图层`);
+    if (completed > 0) {
+      figma.notify(`⚡️ 翻译完成，已更新 ${completed} 个文本图层`);
+    } else {
+      figma.notify(`⚡️ 选中文本均为纯数据或已是目标语言，内容保持原样`);
+    }
+
     sendToUI({
       type: 'task/completed',
       requestId,
@@ -1737,20 +1853,38 @@ const Handlers = {
   'translation/undo': async (requestId) => {
     let recordsToRestore = [];
     
-    // 1. Try global snapshot first (restores whole translation transaction even if selection changed)
-    const lastSnapshot = StorageEngine.popUndo();
+    // 1. Try global transaction snapshot first (restores whole translation transaction even if selection changed)
+    const lastSnapshot = StorageEngine.popTranslationUndo();
     if (lastSnapshot && lastSnapshot.records && lastSnapshot.records.length > 0) {
       recordsToRestore = lastSnapshot.records;
     } else {
-      // 2. Fallback to currently selected nodes' pluginData
+      // 2. Fallback to currently selected nodes' pluginData with strict dual identity validation
       const textNodes = SelectionEngine.getTextNodes();
       for (const node of textNodes) {
         const memRaw = node.getPluginData('volc_translate_original_mem');
         if (memRaw) {
           try {
-            recordsToRestore.push({ id: node.id, ...JSON.parse(memRaw) });
+            const parsed = JSON.parse(memRaw);
+            // Validation 1: If nodeId is present and doesn't match this node's own ID, it's a cloned duplicate!
+            if (parsed.nodeId && parsed.nodeId !== node.id) {
+              node.setPluginData('volc_translate_original_mem', '');
+              continue;
+            }
+            // Validation 2: If appliedText is present, current characters must match appliedText!
+            if (parsed.appliedText && node.characters !== parsed.appliedText) {
+              node.setPluginData('volc_translate_original_mem', '');
+              continue;
+            }
+            // Validation 3: Never overwrite protected data (like +0.69%, NVDA) with text
+            if (DataProtectionEngine.isProtected(node.characters) && !DataProtectionEngine.isProtected(parsed.beforeText || parsed.text)) {
+              node.setPluginData('volc_translate_original_mem', '');
+              continue;
+            }
+            recordsToRestore.push({ id: node.id, ...parsed });
           } catch (e) {
-            recordsToRestore.push({ id: node.id, text: memRaw });
+            if (DataProtectionEngine.isProtected(node.characters)) {
+              node.setPluginData('volc_translate_original_mem', '');
+            }
           }
         }
       }
@@ -1770,18 +1904,37 @@ const Handlers = {
     const restoredNodes = [];
     for (const rec of recordsToRestore) {
       try {
-        const node = await figma.getNodeByIdAsync(rec.id);
+        const targetId = rec.nodeId || rec.id;
+        const node = await figma.getNodeByIdAsync(targetId);
         if (node && node.type === 'TEXT') {
+          // Strict Guard 1: Node ID match
+          if (rec.nodeId && rec.nodeId !== node.id) {
+            node.setPluginData('volc_translate_original_mem', '');
+            continue;
+          }
+          // Strict Guard 2: Current text must match appliedText (if available)
+          if (rec.appliedText && node.characters !== rec.appliedText) {
+            node.setPluginData('volc_translate_original_mem', '');
+            continue;
+          }
+          // Strict Guard 3: Protected data guard (never overwrite pure data with text)
+          if (DataProtectionEngine.isProtected(node.characters) && !DataProtectionEngine.isProtected(rec.beforeText || rec.text)) {
+            node.setPluginData('volc_translate_original_mem', '');
+            continue;
+          }
+
+          const targetText = rec.beforeText !== undefined ? rec.beforeText : rec.text;
           if (rec.taggedText && rec.styles) {
             await RichTextHelper.apply(node, rec.taggedText, rec.styles);
-          } else if (rec.text !== undefined) {
+          } else if (targetText !== undefined) {
             if (node.fontName === figma.mixed) {
               try { await figma.loadFontAsync(node.getRangeFontName(0, 1)); } catch (e) {}
             } else {
               try { await figma.loadFontAsync(node.fontName); } catch (e) {}
             }
-            node.characters = rec.text;
+            node.characters = targetText;
           }
+          node.setPluginData('volc_translate_original_mem', '');
           restored++;
           restoredNodes.push(node);
         }
@@ -1797,7 +1950,7 @@ const Handlers = {
     if (restored > 0) {
       figma.notify(`↩️ 已成功撤回，恢复 ${restored} 个图层至翻译前状态`);
     } else {
-      figma.notify('未能恢复图层内容，请重试');
+      figma.notify('未能恢复图层内容，选中的图层无需撤回');
     }
     
     sendToUI({
@@ -1817,6 +1970,11 @@ const Handlers = {
       return;
     }
 
+    const undoSnapshot = {
+      timestamp: Date.now(),
+      records: []
+    };
+
     let count = 0;
     for (let i = 0; i < textNodes.length; i++) {
       const node = textNodes[i];
@@ -1826,22 +1984,23 @@ const Handlers = {
       try {
         if (isRich) {
           const extracted = RichTextHelper.extract(node);
-          // Save original with rich text memory for undo
-          node.setPluginData('volc_fill_original_mem', JSON.stringify({
-            text: original,
-            taggedText: extracted.taggedText,
-            styles: extracted.styles
-          }));
-
           const modifiedTagged = SmartMockEngine.mockTaggedText(extracted.taggedText, node);
           if (modifiedTagged !== extracted.taggedText) {
             await RichTextHelper.apply(node, modifiedTagged, extracted.styles);
+            const memData = {
+              nodeId: node.id,
+              beforeText: original,
+              appliedText: node.characters,
+              taggedText: extracted.taggedText,
+              styles: extracted.styles
+            };
+            node.setPluginData('volc_fill_original_mem', JSON.stringify(memData));
+            undoSnapshot.records.push(memData);
             count++;
           }
         } else {
           const modified = SmartMockEngine.mockText(original, node);
           if (modified !== original) {
-            node.setPluginData('volc_fill_original_mem', JSON.stringify({ text: original }));
             if (node.fontName === figma.mixed) {
               const len = node.characters.length;
               for (let c = 0; c < len; c++) {
@@ -1851,6 +2010,13 @@ const Handlers = {
               try { await figma.loadFontAsync(node.fontName); } catch (e) {}
             }
             node.characters = modified;
+            const memData = {
+              nodeId: node.id,
+              beforeText: original,
+              appliedText: modified
+            };
+            node.setPluginData('volc_fill_original_mem', JSON.stringify(memData));
+            undoSnapshot.records.push(memData);
             count++;
           }
         }
@@ -1859,60 +2025,102 @@ const Handlers = {
       }
     }
 
+    if (undoSnapshot.records.length > 0) {
+      StorageEngine.pushFillUndo(undoSnapshot);
+    }
+
     figma.notify(`✨ 数据模拟完成 (替换了 ${count} 个数据节点)`);
     sendToUI({
       type: 'task/completed',
       requestId,
       payload: { taskId: requestId, message: `替换完成` },
     });
+    sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 
   'fill/undo': async (requestId) => {
-    const textNodes = SelectionEngine.getTextNodes();
-    if (textNodes.length === 0) {
-      figma.notify('请先选中需要撤回的文本图层');
-      sendToUI({ type: 'task/failed', requestId, payload: { taskId: requestId, error: { message: '未选中图层' } } });
+    let recordsToRestore = [];
+    
+    // 1. Try global transaction snapshot first
+    const lastSnapshot = StorageEngine.popFillUndo();
+    if (lastSnapshot && lastSnapshot.records && lastSnapshot.records.length > 0) {
+      recordsToRestore = lastSnapshot.records;
+    } else {
+      // 2. Fallback to currently selected nodes' pluginData with strict dual identity validation
+      const textNodes = SelectionEngine.getTextNodes();
+      for (const node of textNodes) {
+        const memRaw = node.getPluginData('volc_fill_original_mem');
+        if (memRaw) {
+          try {
+            const parsed = JSON.parse(memRaw);
+            if (parsed.nodeId && parsed.nodeId !== node.id) {
+              node.setPluginData('volc_fill_original_mem', '');
+              continue;
+            }
+            if (parsed.appliedText && node.characters !== parsed.appliedText) {
+              node.setPluginData('volc_fill_original_mem', '');
+              continue;
+            }
+            recordsToRestore.push({ id: node.id, ...parsed });
+          } catch (e) {}
+        }
+      }
+    }
+
+    if (recordsToRestore.length === 0) {
+      figma.notify('没有可撤回的填充记录');
+      sendToUI({ type: 'task/failed', requestId, payload: { taskId: requestId, error: { message: '未找到可撤回记录' } } });
       return;
     }
 
     let restored = 0;
-    for (const node of textNodes) {
-      const memRaw = node.getPluginData('volc_fill_original_mem');
-      if (memRaw) {
-        let memData;
-        try {
-          memData = JSON.parse(memRaw);
-        } catch(e) {
-          memData = { text: memRaw };
-        }
-
-        if (memData.text && memData.text !== node.characters) {
-          try {
-            if (memData.taggedText && memData.styles) {
-              await RichTextHelper.apply(node, memData.taggedText, memData.styles);
-            } else {
-              if (node.fontName === figma.mixed) {
-                try { await figma.loadFontAsync(node.getRangeFontName(0, 1)); } catch (e) {}
-              } else {
-                try { await figma.loadFontAsync(node.fontName); } catch (e) {}
-              }
-              node.characters = memData.text;
-            }
-            restored++;
-          } catch (err) {
-            console.error('[Undo Fill Error]', err);
+    const restoredNodes = [];
+    for (const rec of recordsToRestore) {
+      try {
+        const targetId = rec.nodeId || rec.id;
+        const node = await figma.getNodeByIdAsync(targetId);
+        if (node && node.type === 'TEXT') {
+          if (rec.nodeId && rec.nodeId !== node.id) {
+            node.setPluginData('volc_fill_original_mem', '');
+            continue;
           }
+          if (rec.appliedText && node.characters !== rec.appliedText) {
+            node.setPluginData('volc_fill_original_mem', '');
+            continue;
+          }
+
+          const targetText = rec.beforeText !== undefined ? rec.beforeText : rec.text;
+          if (rec.taggedText && rec.styles) {
+            await RichTextHelper.apply(node, rec.taggedText, rec.styles);
+          } else if (targetText !== undefined) {
+            if (node.fontName === figma.mixed) {
+              try { await figma.loadFontAsync(node.getRangeFontName(0, 1)); } catch (e) {}
+            } else {
+              try { await figma.loadFontAsync(node.fontName); } catch (e) {}
+            }
+            node.characters = targetText;
+          }
+          node.setPluginData('volc_fill_original_mem', '');
+          restored++;
+          restoredNodes.push(node);
         }
+      } catch (err) {
+        console.error('[Undo Fill Error]', err);
       }
+    }
+
+    if (restoredNodes.length > 0) {
+      try { figma.currentPage.selection = restoredNodes; } catch (e) {}
     }
 
     if (restored > 0) {
       figma.notify(`↩️ 已撤回 ${restored} 个图层的填充`);
     } else {
-      figma.notify('没有可撤回的填充记录');
+      figma.notify('未能恢复图层内容，选中的图层无需撤回');
     }
     
     sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: '撤回完成' } });
+    sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 
   'fill/start': async (requestId, payload) => {
@@ -1938,12 +2146,16 @@ const Handlers = {
       return;
     }
 
+    const undoSnapshot = {
+      timestamp: Date.now(),
+      records: []
+    };
+
     let count = 0;
     for (let i = 0; i < textNodes.length; i++) {
       const node = textNodes[i];
       try {
-        node.setPluginData('volc_fill_original_mem', JSON.stringify({ text: node.characters }));
-
+        const original = node.characters;
         if (node.fontName === figma.mixed) {
           const len = node.characters.length;
           for (let c = 0; c < len; c++) {
@@ -1960,11 +2172,24 @@ const Handlers = {
           raw = lines[(lines.length - 1) - (i % lines.length)];
         }
 
-        node.characters = `${prefix}${raw}${suffix}`;
+        const applied = `${prefix}${raw}${suffix}`;
+        node.characters = applied;
+
+        const memData = {
+          nodeId: node.id,
+          beforeText: original,
+          appliedText: applied
+        };
+        node.setPluginData('volc_fill_original_mem', JSON.stringify(memData));
+        undoSnapshot.records.push(memData);
         count++;
       } catch (err) {
         console.error('[Fill Node Error]', err);
       }
+    }
+
+    if (undoSnapshot.records.length > 0) {
+      StorageEngine.pushFillUndo(undoSnapshot);
     }
 
     figma.notify(`✨ 成功填充 ${count} 个文本图层`);
@@ -1973,6 +2198,7 @@ const Handlers = {
       requestId,
       payload: { taskId: requestId, message: `成功填充 ${count} 个图层` },
     });
+    sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
 
   'layers/rename': async (requestId, payload) => {
