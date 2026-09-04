@@ -4454,39 +4454,12 @@ Output format: exactly one translated line per item with its number prefix "[0] 
           }
         }
 
-        // 2. Batch merge via Google GTX for untranslated items
+        // 2. Translate untranslated items individually via concurrent 1-to-1 requests (eliminates delimiter shift/mixing bugs)
         const pending = toTranslate.filter(t => !resultMap.has(t));
-        if (pending.length > 1 && pending.length <= 50) {
-          try {
-            const delimiter = '\n\n⟦⟧\n\n';
-            const joined = pending.join(delimiter);
-            const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(joined)}`;
-            const res = await this.fetchWithTimeout(gtxUrl, {}, 12000);
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data[0]) {
-                const fullText = data[0].map(item => item[0]).join('');
-                const parts = fullText.split(/\s*⟦⟧\s*/);
-                if (parts.length === pending.length) {
-                  pending.forEach((orig, idx) => {
-                    const trans = (parts[idx] || '').trim();
-                    if (trans && trans !== orig) {
-                      resultMap.set(orig, trans);
-                      this.cache.set(`${targetLang}:${orig}`, trans);
-                    }
-                  });
-                }
-              }
-            }
-          } catch (e) {}
-        }
-
-        // Concurrent individual requests
-        const stillPending = toTranslate.filter(t => !resultMap.has(t));
-        if (stillPending.length > 0) {
+        if (pending.length > 0) {
           const concurrency = 8;
-          for (let i = 0; i < stillPending.length; i += concurrency) {
-            const chunk = stillPending.slice(i, i + concurrency);
+          for (let i = 0; i < pending.length; i += concurrency) {
+            const chunk = pending.slice(i, i + concurrency);
             await Promise.all(
               chunk.map(async (text) => {
                 const trans = await this.translateSingle(text, targetLang);

@@ -459,6 +459,125 @@ const DataProtectionEngine = {
 };
 
 // =====================================================================
+// 2.9 NODE HISTORY MANAGER (Pure In-Memory Session Undo / Anti-Crosstalk Engine)
+// =====================================================================
+const NodeHistoryManager = {
+  // Map of nodeId -> Array of historical states: [{ txId, text, isRich, taggedText, styles, timestamp }]
+  historyMap: new Map(),
+  // Global transaction log: [{ txId, type: 'translate'|'fill', nodeIds: [...] }]
+  transactionStack: [],
+
+  recordBeforeChange(nodeList, type = 'translate') {
+    const txId = 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const affectedNodeIds = [];
+
+    for (const node of nodeList) {
+      if (!node || node.type !== 'TEXT') continue;
+      
+      const isRich = RichTextHelper.isRich(node);
+      const extracted = isRich ? RichTextHelper.extract(node) : null;
+      const history = this.historyMap.get(node.id) || [];
+
+      history.push({
+        txId,
+        text: node.characters,
+        isRich,
+        taggedText: extracted ? extracted.taggedText : null,
+        styles: extracted ? extracted.styles : null,
+        timestamp: Date.now()
+      });
+
+      if (history.length > 20) history.shift();
+      this.historyMap.set(node.id, history);
+      affectedNodeIds.push(node.id);
+
+      // Clean up any legacy contaminated pluginData from previous versions!
+      try {
+        node.setPluginData('volc_translate_original_mem', '');
+        node.setPluginData('volc_fill_original_mem', '');
+      } catch (e) {}
+    }
+
+    if (affectedNodeIds.length > 0) {
+      this.transactionStack.push({ txId, type, nodeIds: affectedNodeIds });
+      if (this.transactionStack.length > 30) this.transactionStack.shift();
+    }
+  },
+
+  async undo(type = 'translate', explicitNodes = null) {
+    let nodesToRestore = [];
+
+    // Case 1: The user has specific text layer(s) selected
+    if (explicitNodes && explicitNodes.length > 0) {
+      for (const node of explicitNodes) {
+        if (!node || node.type !== 'TEXT') continue;
+        const history = this.historyMap.get(node.id);
+        if (history && history.length > 0) {
+          const prevState = history.pop();
+          nodesToRestore.push({ node, state: prevState });
+        }
+      }
+      // If none of the explicitly selected text nodes have history, do NOT touch other unselected nodes!
+      if (nodesToRestore.length === 0) {
+        return { restored: 0, reason: 'selection_no_history' };
+      }
+    } else {
+      // Case 2: User selected a frame/group or nothing: undo the most recent transaction
+      if (this.transactionStack.length > 0) {
+        for (let i = this.transactionStack.length - 1; i >= 0; i--) {
+          const tx = this.transactionStack[i];
+          if (tx.type === type) {
+            this.transactionStack.splice(i, 1);
+            for (const id of tx.nodeIds) {
+              const node = await figma.getNodeByIdAsync(id);
+              if (node && node.type === 'TEXT') {
+                const history = this.historyMap.get(node.id);
+                if (history && history.length > 0) {
+                  const prevState = history.pop();
+                  nodesToRestore.push({ node, state: prevState });
+                }
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    if (nodesToRestore.length === 0) {
+      return { restored: 0, reason: 'empty_stack' };
+    }
+
+    let count = 0;
+    const restoredNodes = [];
+    for (const { node, state } of nodesToRestore) {
+      try {
+        if (state.taggedText && state.styles) {
+          await RichTextHelper.apply(node, state.taggedText, state.styles);
+        } else if (state.text !== undefined) {
+          if (node.fontName === figma.mixed) {
+            try { await figma.loadFontAsync(node.getRangeFontName(0, 1)); } catch (e) {}
+          } else {
+            try { await figma.loadFontAsync(node.fontName); } catch (e) {}
+          }
+          node.characters = state.text;
+        }
+        count++;
+        restoredNodes.push(node);
+      } catch (e) {
+        console.error('[Node Restore Error]', e);
+      }
+    }
+
+    if (restoredNodes.length > 0) {
+      try { figma.currentPage.selection = restoredNodes; } catch (e) {}
+    }
+
+    return { restored: count };
+  }
+};
+
+// =====================================================================
 // 3. STORAGE & STATE MANAGER
 // =====================================================================
 const StorageEngine = {
@@ -1697,64 +1816,45 @@ const Handlers = {
       return;
     }
 
-    // 1. Capture snapshot before writing to support reliable, selection-independent Undo
-    const undoSnapshot = {
-      timestamp: Date.now(),
-      records: []
-    };
+    // 1. Filter valid nodes to modify
+    const nodesToModify = [];
+    const targetItems = [];
 
     for (const item of results) {
       const node = await figma.getNodeByIdAsync(item.id);
       if (node && node.type === 'TEXT' && item.translated && item.translated !== node.characters) {
-        // Double-check: if current characters is protected pure data, never overwrite
         if (DataProtectionEngine.isProtected(node.characters)) {
           continue;
         }
-
-        let memData = {
-          nodeId: node.id,
-          beforeText: node.characters,
-          appliedText: item.translated,
-          isRich: RichTextHelper.isRich(node)
-        };
-        if (memData.isRich) {
-          const extracted = RichTextHelper.extract(node);
-          memData.taggedText = extracted.taggedText;
-          memData.styles = extracted.styles;
-        }
-        undoSnapshot.records.push(memData);
-        node.setPluginData('volc_translate_original_mem', JSON.stringify(memData));
+        nodesToModify.push(node);
+        targetItems.push(item);
       }
     }
 
-    if (undoSnapshot.records.length > 0) {
-      StorageEngine.pushTranslationUndo(undoSnapshot);
+    // 2. Record clean in-memory history before changing (Zero layer contamination)
+    if (nodesToModify.length > 0) {
+      NodeHistoryManager.recordBeforeChange(nodesToModify, 'translate');
     }
 
-    // 2. Apply translated characters & rich styles
+    // 3. Apply translated characters & rich styles
     let completed = 0;
-    for (const item of results) {
-      const node = await figma.getNodeByIdAsync(item.id);
-      if (node && node.type === 'TEXT' && item.translated && item.translated !== node.characters) {
-        if (DataProtectionEngine.isProtected(node.characters)) {
-          continue;
-        }
-
-        try {
-          if (preserveRichText && item.richStyles) {
-            await RichTextHelper.apply(node, item.translated, item.richStyles);
+    for (let i = 0; i < nodesToModify.length; i++) {
+      const node = nodesToModify[i];
+      const item = targetItems[i];
+      try {
+        if (preserveRichText && item.richStyles) {
+          await RichTextHelper.apply(node, item.translated, item.richStyles);
+        } else {
+          if (node.fontName === figma.mixed) {
+            await figma.loadFontAsync(node.getRangeFontName(0, 1));
           } else {
-            if (node.fontName === figma.mixed) {
-              await figma.loadFontAsync(node.getRangeFontName(0, 1));
-            } else {
-              await figma.loadFontAsync(node.fontName);
-            }
-            node.characters = item.translated;
+            await figma.loadFontAsync(node.fontName);
           }
-          completed++;
-        } catch (e) {
-          console.error('[Write Node Error]', e);
+          node.characters = item.translated;
         }
+        completed++;
+      } catch (e) {
+        console.error('[Write Node Error]', e);
       }
     }
 
@@ -1851,112 +1951,21 @@ const Handlers = {
   },
 
   'translation/undo': async (requestId) => {
-    let recordsToRestore = [];
-    
-    // 1. Try global transaction snapshot first (restores whole translation transaction even if selection changed)
-    const lastSnapshot = StorageEngine.popTranslationUndo();
-    if (lastSnapshot && lastSnapshot.records && lastSnapshot.records.length > 0) {
-      recordsToRestore = lastSnapshot.records;
+    const textNodes = SelectionEngine.getTextNodes();
+    const result = await NodeHistoryManager.undo('translate', textNodes.length > 0 ? textNodes : null);
+
+    if (result.restored > 0) {
+      figma.notify(`↩️ 已成功撤回，恢复 ${result.restored} 个图层至上一步`);
+    } else if (result.reason === 'selection_no_history') {
+      figma.notify('当前选中的图层在本次会话中没有可撤回的修改记录');
     } else {
-      // 2. Fallback to currently selected nodes' pluginData with strict dual identity validation
-      const textNodes = SelectionEngine.getTextNodes();
-      for (const node of textNodes) {
-        const memRaw = node.getPluginData('volc_translate_original_mem');
-        if (memRaw) {
-          try {
-            const parsed = JSON.parse(memRaw);
-            // Validation 1: If nodeId is present and doesn't match this node's own ID, it's a cloned duplicate!
-            if (parsed.nodeId && parsed.nodeId !== node.id) {
-              node.setPluginData('volc_translate_original_mem', '');
-              continue;
-            }
-            // Validation 2: If appliedText is present, current characters must match appliedText!
-            if (parsed.appliedText && node.characters !== parsed.appliedText) {
-              node.setPluginData('volc_translate_original_mem', '');
-              continue;
-            }
-            // Validation 3: Never overwrite protected data (like +0.69%, NVDA) with text
-            if (DataProtectionEngine.isProtected(node.characters) && !DataProtectionEngine.isProtected(parsed.beforeText || parsed.text)) {
-              node.setPluginData('volc_translate_original_mem', '');
-              continue;
-            }
-            recordsToRestore.push({ id: node.id, ...parsed });
-          } catch (e) {
-            if (DataProtectionEngine.isProtected(node.characters)) {
-              node.setPluginData('volc_translate_original_mem', '');
-            }
-          }
-        }
-      }
-    }
-
-    if (recordsToRestore.length === 0) {
-      figma.notify('没有可撤回的翻译记录');
-      sendToUI({
-        type: 'task/failed',
-        requestId,
-        payload: { taskId: requestId, error: { message: '没有可撤回的翻译记录' } },
-      });
-      return;
-    }
-
-    let restored = 0;
-    const restoredNodes = [];
-    for (const rec of recordsToRestore) {
-      try {
-        const targetId = rec.nodeId || rec.id;
-        const node = await figma.getNodeByIdAsync(targetId);
-        if (node && node.type === 'TEXT') {
-          // Strict Guard 1: Node ID match
-          if (rec.nodeId && rec.nodeId !== node.id) {
-            node.setPluginData('volc_translate_original_mem', '');
-            continue;
-          }
-          // Strict Guard 2: Current text must match appliedText (if available)
-          if (rec.appliedText && node.characters !== rec.appliedText) {
-            node.setPluginData('volc_translate_original_mem', '');
-            continue;
-          }
-          // Strict Guard 3: Protected data guard (never overwrite pure data with text)
-          if (DataProtectionEngine.isProtected(node.characters) && !DataProtectionEngine.isProtected(rec.beforeText || rec.text)) {
-            node.setPluginData('volc_translate_original_mem', '');
-            continue;
-          }
-
-          const targetText = rec.beforeText !== undefined ? rec.beforeText : rec.text;
-          if (rec.taggedText && rec.styles) {
-            await RichTextHelper.apply(node, rec.taggedText, rec.styles);
-          } else if (targetText !== undefined) {
-            if (node.fontName === figma.mixed) {
-              try { await figma.loadFontAsync(node.getRangeFontName(0, 1)); } catch (e) {}
-            } else {
-              try { await figma.loadFontAsync(node.fontName); } catch (e) {}
-            }
-            node.characters = targetText;
-          }
-          node.setPluginData('volc_translate_original_mem', '');
-          restored++;
-          restoredNodes.push(node);
-        }
-      } catch (err) {
-        console.error('[Undo Restore Error]', err);
-      }
-    }
-
-    if (restoredNodes.length > 0) {
-      try { figma.currentPage.selection = restoredNodes; } catch (e) {}
-    }
-
-    if (restored > 0) {
-      figma.notify(`↩️ 已成功撤回，恢复 ${restored} 个图层至翻译前状态`);
-    } else {
-      figma.notify('未能恢复图层内容，选中的图层无需撤回');
+      figma.notify('当前没有可撤回的翻译记录');
     }
     
     sendToUI({
       type: 'task/completed',
       requestId,
-      payload: { taskId: requestId, message: `已撤回 ${restored} 个图层` },
+      payload: { taskId: requestId, message: `已撤回 ${result.restored} 个图层` },
     });
     sendToUI({ type: 'selection/changed', requestId, payload: SelectionEngine.scan() });
   },
@@ -1970,10 +1979,7 @@ const Handlers = {
       return;
     }
 
-    const undoSnapshot = {
-      timestamp: Date.now(),
-      records: []
-    };
+    NodeHistoryManager.recordBeforeChange(textNodes, 'fill');
 
     let count = 0;
     for (let i = 0; i < textNodes.length; i++) {
@@ -1987,15 +1993,6 @@ const Handlers = {
           const modifiedTagged = SmartMockEngine.mockTaggedText(extracted.taggedText, node);
           if (modifiedTagged !== extracted.taggedText) {
             await RichTextHelper.apply(node, modifiedTagged, extracted.styles);
-            const memData = {
-              nodeId: node.id,
-              beforeText: original,
-              appliedText: node.characters,
-              taggedText: extracted.taggedText,
-              styles: extracted.styles
-            };
-            node.setPluginData('volc_fill_original_mem', JSON.stringify(memData));
-            undoSnapshot.records.push(memData);
             count++;
           }
         } else {
@@ -2010,23 +2007,12 @@ const Handlers = {
               try { await figma.loadFontAsync(node.fontName); } catch (e) {}
             }
             node.characters = modified;
-            const memData = {
-              nodeId: node.id,
-              beforeText: original,
-              appliedText: modified
-            };
-            node.setPluginData('volc_fill_original_mem', JSON.stringify(memData));
-            undoSnapshot.records.push(memData);
             count++;
           }
         }
       } catch (err) {
         console.error('[Smart Fill Node Error]', err);
       }
-    }
-
-    if (undoSnapshot.records.length > 0) {
-      StorageEngine.pushFillUndo(undoSnapshot);
     }
 
     figma.notify(`✨ 数据模拟完成 (替换了 ${count} 个数据节点)`);
@@ -2039,84 +2025,15 @@ const Handlers = {
   },
 
   'fill/undo': async (requestId) => {
-    let recordsToRestore = [];
-    
-    // 1. Try global transaction snapshot first
-    const lastSnapshot = StorageEngine.popFillUndo();
-    if (lastSnapshot && lastSnapshot.records && lastSnapshot.records.length > 0) {
-      recordsToRestore = lastSnapshot.records;
+    const textNodes = SelectionEngine.getTextNodes();
+    const result = await NodeHistoryManager.undo('fill', textNodes.length > 0 ? textNodes : null);
+
+    if (result.restored > 0) {
+      figma.notify(`↩️ 已撤回 ${result.restored} 个图层的填充`);
+    } else if (result.reason === 'selection_no_history') {
+      figma.notify('当前选中的图层在本次会话中没有可撤回的填充记录');
     } else {
-      // 2. Fallback to currently selected nodes' pluginData with strict dual identity validation
-      const textNodes = SelectionEngine.getTextNodes();
-      for (const node of textNodes) {
-        const memRaw = node.getPluginData('volc_fill_original_mem');
-        if (memRaw) {
-          try {
-            const parsed = JSON.parse(memRaw);
-            if (parsed.nodeId && parsed.nodeId !== node.id) {
-              node.setPluginData('volc_fill_original_mem', '');
-              continue;
-            }
-            if (parsed.appliedText && node.characters !== parsed.appliedText) {
-              node.setPluginData('volc_fill_original_mem', '');
-              continue;
-            }
-            recordsToRestore.push({ id: node.id, ...parsed });
-          } catch (e) {}
-        }
-      }
-    }
-
-    if (recordsToRestore.length === 0) {
-      figma.notify('没有可撤回的填充记录');
-      sendToUI({ type: 'task/failed', requestId, payload: { taskId: requestId, error: { message: '未找到可撤回记录' } } });
-      return;
-    }
-
-    let restored = 0;
-    const restoredNodes = [];
-    for (const rec of recordsToRestore) {
-      try {
-        const targetId = rec.nodeId || rec.id;
-        const node = await figma.getNodeByIdAsync(targetId);
-        if (node && node.type === 'TEXT') {
-          if (rec.nodeId && rec.nodeId !== node.id) {
-            node.setPluginData('volc_fill_original_mem', '');
-            continue;
-          }
-          if (rec.appliedText && node.characters !== rec.appliedText) {
-            node.setPluginData('volc_fill_original_mem', '');
-            continue;
-          }
-
-          const targetText = rec.beforeText !== undefined ? rec.beforeText : rec.text;
-          if (rec.taggedText && rec.styles) {
-            await RichTextHelper.apply(node, rec.taggedText, rec.styles);
-          } else if (targetText !== undefined) {
-            if (node.fontName === figma.mixed) {
-              try { await figma.loadFontAsync(node.getRangeFontName(0, 1)); } catch (e) {}
-            } else {
-              try { await figma.loadFontAsync(node.fontName); } catch (e) {}
-            }
-            node.characters = targetText;
-          }
-          node.setPluginData('volc_fill_original_mem', '');
-          restored++;
-          restoredNodes.push(node);
-        }
-      } catch (err) {
-        console.error('[Undo Fill Error]', err);
-      }
-    }
-
-    if (restoredNodes.length > 0) {
-      try { figma.currentPage.selection = restoredNodes; } catch (e) {}
-    }
-
-    if (restored > 0) {
-      figma.notify(`↩️ 已撤回 ${restored} 个图层的填充`);
-    } else {
-      figma.notify('未能恢复图层内容，选中的图层无需撤回');
+      figma.notify('当前没有可撤回的填充记录');
     }
     
     sendToUI({ type: 'task/completed', requestId, payload: { taskId: requestId, message: '撤回完成' } });
@@ -2146,16 +2063,12 @@ const Handlers = {
       return;
     }
 
-    const undoSnapshot = {
-      timestamp: Date.now(),
-      records: []
-    };
+    NodeHistoryManager.recordBeforeChange(textNodes, 'fill');
 
     let count = 0;
     for (let i = 0; i < textNodes.length; i++) {
       const node = textNodes[i];
       try {
-        const original = node.characters;
         if (node.fontName === figma.mixed) {
           const len = node.characters.length;
           for (let c = 0; c < len; c++) {
@@ -2172,24 +2085,11 @@ const Handlers = {
           raw = lines[(lines.length - 1) - (i % lines.length)];
         }
 
-        const applied = `${prefix}${raw}${suffix}`;
-        node.characters = applied;
-
-        const memData = {
-          nodeId: node.id,
-          beforeText: original,
-          appliedText: applied
-        };
-        node.setPluginData('volc_fill_original_mem', JSON.stringify(memData));
-        undoSnapshot.records.push(memData);
+        node.characters = `${prefix}${raw}${suffix}`;
         count++;
       } catch (err) {
         console.error('[Fill Node Error]', err);
       }
-    }
-
-    if (undoSnapshot.records.length > 0) {
-      StorageEngine.pushFillUndo(undoSnapshot);
     }
 
     figma.notify(`✨ 成功填充 ${count} 个文本图层`);
